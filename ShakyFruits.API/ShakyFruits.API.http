@@ -1,0 +1,6 @@
+@ShakyFruits.API_HostAddress = http://localhost:5290
+
+GET {{ShakyFruits.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

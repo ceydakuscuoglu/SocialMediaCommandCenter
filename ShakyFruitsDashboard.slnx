@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="ShakyFruits.API/ShakyFruits.API.csproj" />
+  <Project Path="ShakyFruits.Core/ShakyFruits.Core.csproj" />
+  <Project Path="ShakyFruits.Data/ShakyFruits.Data.csproj" />
+  <Project Path="ShakyFruits.Services/ShakyFruits.Services.csproj" />
+</Solution>
