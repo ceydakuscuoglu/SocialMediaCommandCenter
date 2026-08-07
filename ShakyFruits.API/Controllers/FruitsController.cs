@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore; // ToListAsync() asenkron metodu için eklendi
 using Microsoft.Extensions.Options;
 using ShakyFruits.Core.Entities;
 using ShakyFruits.Core.Settings;
@@ -13,36 +14,53 @@ namespace ShakyFruits.API.Controllers
         private readonly ApplicationDbContext _context;
         private readonly AssetPathOptions _assetPaths;
 
-        // Constructor Injection: Veritabanını ve Ayarları buraya çağırıyoruz
         public FruitsController(ApplicationDbContext context, IOptions<AssetPathOptions> assetPathsOptions)
         {
             _context = context;
             _assetPaths = assetPathsOptions.Value;
         }
 
+        // POST: api/Fruits/add-dummy-fruit (Önceki yazdığımız veri ekleme metodu)
         [HttpPost("add-dummy-fruit")]
         public async Task<IActionResult> AddDummyFruit()
         {
-            // 1. Dinamik dosya yolumuzu kullanarak yeni bir meyve görseli nesnesi oluşturuyoruz
             var newFruit = new FruitAsset
             {
                 Title = "Test Çileği",
                 IsMultipleFruits = false,
-                // Dinamik klasör yolunun sonuna dosya adını ekliyoruz
                 ImagePath = Path.Combine(_assetPaths.FruitImages, "test_cilek.png")
             };
 
-            // 2. Veritabanına ekle
             _context.FruitAssets.Add(newFruit);
-            await _context.SaveChangesAsync(); // Tarihler (CreatedAt) otomatik atılacak!
+            await _context.SaveChangesAsync();
 
-            // 3. Ekrana başarılı mesajı ve kaydedilen yolu döndür
             return Ok(new
             {
                 Message = "Veritabanına başarıyla kaydedildi!",
                 SavedPath = newFruit.ImagePath,
                 CreatedDate = newFruit.CreatedAt
             });
+        }
+
+        // GET: api/Fruits
+        // Veritabanındaki TÜM meyve görsellerini getirir
+        [HttpGet]
+        public async Task<IActionResult> GetAllFruits()
+        {
+            var fruits = await _context.FruitAssets.ToListAsync();
+            return Ok(fruits);
+        }
+
+        // GET: api/Fruits/filter?isMultiple=true
+        // Tekli veya Çoklu olma durumuna göre veritabanı seviyesinde filtreleme yapar
+        [HttpGet("filter")]
+        public async Task<IActionResult> GetFruitsByStatus([FromQuery] bool isMultiple)
+        {
+            var filteredFruits = await _context.FruitAssets
+                .Where(f => f.IsMultipleFruits == isMultiple)
+                .ToListAsync();
+
+            return Ok(filteredFruits);
         }
     }
 }
