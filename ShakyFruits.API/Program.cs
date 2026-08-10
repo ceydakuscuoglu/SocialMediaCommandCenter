@@ -11,6 +11,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.Configure<ShakyFruits.Core.Settings.AssetPathOptions>(
     builder.Configuration.GetSection("AssetPaths"));
 
+builder.Services.AddScoped<ShakyFruits.Services.KlingAiBotService>();
 // 3. Controller Sınıflarını ve Swagger Arayüzünü Sisteme Tanıtma
 builder.Services.AddControllers(); // FruitsController'ı bulmasını sağlar
 builder.Services.AddEndpointsApiExplorer();
