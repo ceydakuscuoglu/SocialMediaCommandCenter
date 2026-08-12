@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ShakyFruits.API.DTOs;
 using ShakyFruits.Core.Constants;
+using ShakyFruits.Core.Helpers;
 using ShakyFruits.Services;
 
 namespace ShakyFruits.API.Controllers
@@ -46,40 +47,37 @@ namespace ShakyFruits.API.Controllers
         {
             try
             {
+                // 1. Dosyaları sunucuya kaydet
                 string savedImagePath = await SaveFileAsync(request.FruitImage, "Images");
-                if (string.IsNullOrEmpty(savedImagePath))
-                    return BadRequest("Meyve fotoğrafı yüklenmesi zorunludur!");
+                if (string.IsNullOrEmpty(savedImagePath)) return BadRequest("Meyve fotoğrafı zorunludur!");
 
                 string savedVideoPath = string.Empty;
                 if (!request.IsRecreate)
                 {
-                    if (request.ReferenceVideo == null)
-                        return BadRequest("Sıfırdan üretim için referans video zorunludur!");
-
+                    if (request.ReferenceVideo == null) return BadRequest("Referans video zorunludur!");
                     savedVideoPath = await SaveFileAsync(request.ReferenceVideo, "Videos");
                 }
 
-                // Swagger'ın veya ön yüzün saçma değerler (örn: "string" veya boş) göndermesine karşı koruma
-                if (string.IsNullOrWhiteSpace(request.TargetModel) || request.TargetModel == "string")
-                    request.TargetModel = "VIDEO 2.6";
+                // --- YENİ ROKET MİMARİSİ ---
 
-                if (string.IsNullOrWhiteSpace(request.TargetResolution) || request.TargetResolution == "string")
-                    request.TargetResolution = "720p";
+                // 2. Videonun süresini oku (Recreate ise eski bir videonun süresini varsayabilir veya DB'den çekebilirsin)
+                double videoDuration = request.IsRecreate ? 5.0 : KlingCostCalculator.GetVideoDurationInSeconds(savedVideoPath);
 
-                // TERTEMİZ MİMARİ: Controller artık ne yazacağını düşünmüyor, fabrikadan istiyor.
-                string appliedPrompt = KlingPrompts.GetFixPrompt(request.IsMultipleFruits);
+                // 3. Güvenlik Koruma Kalkanı
+                if (string.IsNullOrWhiteSpace(request.TargetModel) || request.TargetModel == "string") request.TargetModel = "VIDEO 2.6";
+                if (string.IsNullOrWhiteSpace(request.TargetResolution) || request.TargetResolution == "string") request.TargetResolution = "720p";
 
-                int cost = await _botService.PrepareAndGetCostAsync(
-                    request.IsRecreate,
-                    savedImagePath,
-                    savedVideoPath,
-                    appliedPrompt,
-                    request.TargetUrl,
-                    request.TargetModel,
-                    request.TargetResolution
-                );
+                // 4. Maliyeti kendi C# sunucumuzda hesapla! (Bot açılmıyor, kilitlenme yok)
+                int calculatedCost = KlingCostCalculator.CalculateCost(request.TargetModel, request.TargetResolution, videoDuration);
 
-                return Ok(new { Message = "Hazır!", RequiredCredits = cost });
+                // İLERİDE BURAYA EKLENECEK: Bu istek veritabanına "Onay Bekliyor" statüsüyle kaydedilecek ve bir Guid (ID) dönecek.
+
+                return Ok(new
+                {
+                    Message = "Dosyalar yüklendi ve maliyet anında hesaplandı. Onayınız bekleniyor.",
+                    CalculatedCredits = calculatedCost,
+                    VideoDurationSeconds = videoDuration
+                });
             }
             catch (Exception ex)
             {
