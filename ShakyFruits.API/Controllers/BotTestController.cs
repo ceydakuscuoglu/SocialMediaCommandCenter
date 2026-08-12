@@ -14,11 +14,48 @@ namespace ShakyFruits.API.Controllers
             _botService = botService;
         }
 
-        [HttpPost("run-browser")]
-        public async Task<IActionResult> RunBrowser([FromQuery] bool isRecreate, [FromQuery] string? url = null)
+        // 1. AŞAMA: Hazırlık ve Fiyat Alma
+        [HttpPost("prepare")]
+        public async Task<IActionResult> Prepare([FromQuery] bool isRecreate, [FromQuery] string? url = null)
         {
-            await _botService.RunTestAsync(isRecreate, url);
-            return Ok("Bot başarıyla çalıştırıldı!");
+            try
+            {
+                // Botu hazırlığa gönderiyoruz. (Model ve çözünürlük şimdilik varsayılan değerleri kullanacak)
+                int cost = await _botService.PrepareAndGetCostAsync(isRecreate, url);
+
+                return Ok(new
+                {
+                    Message = "Bot dosyaları yükledi ve onayınızı bekliyor!",
+                    RequiredCredits = cost
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Hata: {ex.Message}");
+            }
+        }
+
+        // 2. AŞAMA: Onay ve Üretim
+        [HttpPost("confirm")]
+        public async Task<IActionResult> Confirm()
+        {
+            try
+            {
+                await _botService.ConfirmAndGenerateAsync();
+                return Ok("Onay verildi! Üretim simüle edildi ve sekme kapatıldı.");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Hata: {ex.Message}");
+            }
+        }
+
+        // 3. AŞAMA: İptal
+        [HttpPost("cancel")]
+        public async Task<IActionResult> Cancel()
+        {
+            await _botService.CancelGenerationAsync();
+            return Ok("İşlem iptal edildi, tarayıcı sekmesi temizlendi.");
         }
     }
 }

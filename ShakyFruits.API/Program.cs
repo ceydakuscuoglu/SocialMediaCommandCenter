@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ShakyFruits.Data;
+using ShakyFruits.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,7 +12,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.Configure<ShakyFruits.Core.Settings.AssetPathOptions>(
     builder.Configuration.GetSection("AssetPaths"));
 
-builder.Services.AddScoped<ShakyFruits.Services.KlingAiBotService>();
+builder.Services.AddSingleton<KlingAiBotService>();
+//builder.Services.AddScoped<ShakyFruits.Services.KlingAiBotService>();
 // 3. Controller Sınıflarını ve Swagger Arayüzünü Sisteme Tanıtma
 builder.Services.AddControllers(); // FruitsController'ı bulmasını sağlar
 builder.Services.AddEndpointsApiExplorer();

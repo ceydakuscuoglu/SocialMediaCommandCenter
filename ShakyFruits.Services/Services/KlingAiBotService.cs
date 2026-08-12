@@ -4,139 +4,205 @@ namespace ShakyFruits.Services
 {
     public class KlingAiBotService
     {
-        // === HTML SEÇİCİLERİ ===
+        // === GLOBAL STATE (DURUM) DEĞİŞKENLERİ ===
+        private IPlaywright? _playwright;
+        private IBrowserContext? _context;
+        private IPage? _page;
+        private bool _isBusy = false;
+        private CancellationTokenSource? _timeoutCts;
+
+        // === HTML SEÇİCİLERİ (ESKİ + YENİ) ===
         private readonly string SELECTOR_LOADING_SPINNER = ".uploading";
         private readonly string SELECTOR_VIDEO_INPUT = ".motion-video-upload-wrapper input[type='file']";
         private readonly string SELECTOR_IMAGE_INPUT = ".human-image-upload-wrapper input[type='file']";
         private readonly string SELECTOR_DELETE_IMAGE_BTN = ".human-image-upload-wrapper [icon-name='IconDelete']";
         private readonly string SELECTOR_PROMPT_TEXTAREA = ".prompt-editor-wrapper .ProseMirror";
-        private readonly string SELECTOR_GENERATE_BTN = ""; // Kredileri korumak için şimdilik boş! :)
 
-        // Metot imzasında targetUrl parametresini nullable (isteğe bağlı) yaptık
-        public async Task RunTestAsync(bool isRecreate, string? targetUrl = null)
+        private readonly string SELECTOR_SETTING_BTN = ".setting-select";
+        private readonly string SELECTOR_MODEL_DROPDOWN = ".ai-web-select-model-version";
+        private readonly string SELECTOR_RESOLUTION_TAB = ".option-tab-item";
+        private readonly string SELECTOR_GENERATE_BTN = "button.button-pay";
+        private readonly string SELECTOR_CREDIT_VALUE = "button.button-pay .price .value";
+
+        // 1. AŞAMA: HAZIRLIK VE FİYAT ALMA
+        public async Task<int> PrepareAndGetCostAsync(bool isRecreate, string? targetUrl = null, string targetModel = "VIDEO 2.6", string targetResolution = "720p")
         {
-            using var playwright = await Playwright.CreateAsync();
-            var userDataDir = Path.Combine(AppContext.BaseDirectory, "KlingSession");
+            if (_isBusy) throw new Exception("Bot şu anda başka bir işlem veya onay bekliyor!");
+            _isBusy = true; // Botu diğer isteklere kilitliyoruz
 
-            await using var context = await playwright.Chromium.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
+            // Playwright ve Tarayıcıyı sadece ilk seferde veya kapanmışsa başlat
+            if (_playwright == null || _context == null)
             {
-                Headless = false,
-                SlowMo = 500
-            });
+                _playwright = await Playwright.CreateAsync();
+                var userDataDir = Path.Combine(AppContext.BaseDirectory, "KlingSession");
 
-            var page = context.Pages.FirstOrDefault() ?? await context.NewPageAsync();
+                _context = await _playwright.Chromium.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
+                {
+                    Headless = false,
+                    SlowMo = 500
+                });
+            }
 
-            // Akıllı Yönlendirme Mantığı:
-            // Recreate ise ve dışarıdan bir URL verildiyse ona git, değilse sitenin standart sayfasına git
+            _page = _context.Pages.FirstOrDefault() ?? await _context.NewPageAsync();
+
             string urlToGo = isRecreate && !string.IsNullOrWhiteSpace(targetUrl)
                 ? targetUrl
                 : "https://kling.ai/app/video-motion-control/new";
 
-            // 1. Belirlenen URL'e git
-            await page.GotoAsync(urlToGo);
-            await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+            await _page.GotoAsync(urlToGo);
+            await _page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
 
-
-            // --- TEST VERİLERİ ---
-            // DİKKAT: Bilgisayarında gerçekten bu yollarda test dosyaları olduğundan emin ol, yoksa bot hata fırlatır!
+            // --- TEST VERİLERİ (İleride bunları da parametre yapabilirsin) ---
             string fruitImagePath = @"D:\TempAssets\fruit_images\test_cilek.png";
             string referenceVideoPath = @"D:\TempAssets\reference_videos\ssstik.io_@aeedais_1786078923253.mp4";
             string promptText = "A cute anthropomorphic strawberry dancing salsa, highly detailed, 4k";
-            // ---------------------
+            // -----------------------------------------------------------------
 
+            // === DOSYA YÜKLEME MANTIĞI (Eski kodundan birebir alındı) ===
             if (isRecreate)
             {
-                // Yönlendirme (GotoAsync) sonrası sitenin modalı çıkarması için biraz süre tanı
                 await Task.Delay(1500);
-
-                // 1. Ekranda o yeşil "Confirm" butonu belirdi mi diye kontrol et
-                var confirmBtn = page.GetByRole(AriaRole.Button, new() { Name = "Confirm", Exact = true });
-
+                var confirmBtn = _page.GetByRole(AriaRole.Button, new() { Name = "Confirm", Exact = true });
                 if (await confirmBtn.IsVisibleAsync())
                 {
-                    // Buton varsa tıkla ve arayüzün yeni URL'e göre oturmasını bekle
                     await confirmBtn.ClickAsync();
                     await Task.Delay(1500);
                 }
 
-                // 2. Recreate (Görseli temizle ve yenisini yükle)
-                var deleteBtn = page.Locator(SELECTOR_DELETE_IMAGE_BTN);
-
-                // Eğer silme butonu ekranda varsa (yani resim yüklüyse) tıkla
+                var deleteBtn = _page.Locator(SELECTOR_DELETE_IMAGE_BTN);
                 if (await deleteBtn.IsVisibleAsync())
                 {
                     await deleteBtn.ClickAsync();
-                    await Task.Delay(1000); // Silme animasyonunu bekle
+                    await Task.Delay(1000);
                 }
 
-                // 3. Yeni resmi yükle
-                await page.Locator(SELECTOR_IMAGE_INPUT).SetInputFilesAsync(fruitImagePath);
-
-                // UI'ın tepki verip spinner'ı çıkarması için yarım saniye müsaade et
+                await _page.Locator(SELECTOR_IMAGE_INPUT).SetInputFilesAsync(fruitImagePath);
                 await Task.Delay(500);
-
-                // Fotoğraf yükleme animasyonunun kaybolmasını bekle
-                await page.Locator(SELECTOR_LOADING_SPINNER).Last.WaitForAsync(new LocatorWaitForOptions
-                {
-                    State = WaitForSelectorState.Hidden,
-                    Timeout = 120000
-                });
+                await _page.Locator(SELECTOR_LOADING_SPINNER).Last.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Hidden, Timeout = 120000 });
             }
             else
             {
-                // SENARYO 2: Local Upload (Her ikisini de sıfırdan yükle)
-
-                // 1. Video dosyasını yüklemeye çalış
-                await page.Locator(SELECTOR_VIDEO_INPUT).SetInputFilesAsync(referenceVideoPath);
-
-                // Sitenin uyarı (Modal) animasyonunu çıkarması ihtimaline karşı yarım saniye bekle
+                await _page.Locator(SELECTOR_VIDEO_INPUT).SetInputFilesAsync(referenceVideoPath);
                 await Task.Delay(500);
 
-                // 2. Ekranda o yeşil "Confirm" butonu belirdi mi diye kontrol et
-                var confirmBtn = page.GetByRole(AriaRole.Button, new() { Name = "Confirm", Exact = true });
-
+                var confirmBtn = _page.GetByRole(AriaRole.Button, new() { Name = "Confirm", Exact = true });
                 if (await confirmBtn.IsVisibleAsync())
                 {
-                    // Buton varsa tıkla ve uyarının kapanmasını bekle
                     await confirmBtn.ClickAsync();
                     await Task.Delay(1000);
-
-                    // Mod değiştiği ve arayüz sıfırlandığı için videoyu garanti olsun diye tekrar yükle
-                    await page.Locator(SELECTOR_VIDEO_INPUT).SetInputFilesAsync(referenceVideoPath);
-
-                    // Arayüzün spinner'ı çıkarması için yarım saniye bekle
+                    await _page.Locator(SELECTOR_VIDEO_INPUT).SetInputFilesAsync(referenceVideoPath);
                     await Task.Delay(500);
                 }
 
-                // Video yükleme animasyonunun (ekrandaki ilk spinner'ın) kaybolmasını bekle
-                await page.Locator(SELECTOR_LOADING_SPINNER).First.WaitForAsync(new LocatorWaitForOptions
-                {
-                    State = WaitForSelectorState.Hidden,
-                    Timeout = 120000
-                });
-
-                // 3. Son olarak meyve resmini yükle
-                await page.Locator(SELECTOR_IMAGE_INPUT).SetInputFilesAsync(fruitImagePath);
-
-                // Arayüzün fotoğraf spinner'ını çıkarması için yarım saniye bekle
+                await _page.Locator(SELECTOR_LOADING_SPINNER).First.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Hidden, Timeout = 120000 });
+                await _page.Locator(SELECTOR_IMAGE_INPUT).SetInputFilesAsync(fruitImagePath);
                 await Task.Delay(500);
-
-                // Fotoğraf yükleme animasyonunun (ekrandaki son spinner'ın) kaybolmasını bekle
-                await page.Locator(SELECTOR_LOADING_SPINNER).Last.WaitForAsync(new LocatorWaitForOptions
-                {
-                    State = WaitForSelectorState.Hidden,
-                    Timeout = 120000
-                });
+                await _page.Locator(SELECTOR_LOADING_SPINNER).Last.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Hidden, Timeout = 120000 });
             }
 
-            // Ortak Adımlar: Prompt kutusuna metni yazdır
-            await page.Locator(SELECTOR_PROMPT_TEXTAREA).FillAsync(promptText);
+            // Ortak Adım: Prompt
+            await _page.Locator(SELECTOR_PROMPT_TEXTAREA).FillAsync(promptText);
 
-            // Kredi gitmemesi için tıklama kodu tamamen kapalı
-            // await page.Locator(SELECTOR_GENERATE_BTN).ClickAsync(); 
+            // === YENİ: AYARLARI SEÇME VE FİYAT OKUMA ===
 
-            // İşlemler bittikten sonra sonucu rahatça izleyebilmen için tarayıcı 15 saniye açık kalacak
-            await Task.Delay(15000);
+            // 1. Model Seçimi
+            await _page.Locator(SELECTOR_MODEL_DROPDOWN).ClickAsync();
+            await Task.Delay(500);
+            await _page.Locator(".el-select-dropdown__item").Filter(new LocatorFilterOptions { HasText = targetModel }).ClickAsync();
+
+            // 2. Çözünürlük Seçimi
+            await _page.Locator(SELECTOR_SETTING_BTN)
+           .Filter(new LocatorFilterOptions
+           {
+               HasTextRegex = new System.Text.RegularExpressions.Regex("720p|1080p", System.Text.RegularExpressions.RegexOptions.IgnoreCase)
+           })
+           .ClickAsync();
+
+            await Task.Delay(500); // Animasyonu bekle
+
+            // Açılan menünün içinden hedeflenen çözünürlüğü seç
+            await _page.Locator(SELECTOR_RESOLUTION_TAB)
+                       .Filter(new LocatorFilterOptions { HasText = targetResolution })
+                       .ClickAsync();
+
+            // Sitenin maliyeti hesaplaması için kısa bir süre bekle
+            await Task.Delay(1000);
+            await _page.Locator(SELECTOR_RESOLUTION_TAB).Filter(new LocatorFilterOptions { HasText = targetResolution }).ClickAsync();
+
+            // Sitenin maliyeti hesaplaması için kısa bir süre bekle
+            await Task.Delay(1000);
+
+            // 3. Maliyeti Oku
+            string costText = await _page.Locator(SELECTOR_CREDIT_VALUE).InnerTextAsync();
+            string costString = string.Join("", costText.Where(char.IsDigit));
+            int requiredCredits = int.TryParse(costString, out int parsed) ? parsed : 0;
+
+            // Arka planda 5 dakikalık geri sayımı başlat
+            StartTimeoutTimer(TimeSpan.FromMinutes(5));
+
+            // Fiyatı dön (Ama sekmeyi KAPATMA!)
+            return requiredCredits;
+        }
+
+        // 2. AŞAMA: ONAY VE ÜRETİM
+        public async Task ConfirmAndGenerateAsync()
+        {
+            if (_page == null) throw new Exception("Hazırda bekleyen bir Kling AI sayfası yok! Önce hazırlık aşamasını çalıştırın.");
+
+            // Kullanıcı onay verdi, zaman aşımını iptal et
+            _timeoutCts?.Cancel();
+
+            // Kredi harcamamak için şimdilik kapalı, hazır olduğunda açabilirsin!
+            // await _page.Locator(SELECTOR_GENERATE_BTN).ClickAsync(); 
+
+            await Task.Delay(2000); // Tıklama animasyonunu bekle
+            await CleanUpAsync(); // İşlemi bitir ve botu boşa çıkar
+        }
+
+        // 3. AŞAMA: İPTAL
+        public async Task CancelGenerationAsync()
+        {
+            // Kullanıcı vazgeçti, zaman aşımını iptal et ve sekmeyi kapat
+            _timeoutCts?.Cancel();
+            await CleanUpAsync();
+        }
+
+        // === YARDIMCI METOTLAR ===
+        private void StartTimeoutTimer(TimeSpan timeout)
+        {
+            _timeoutCts?.Cancel();
+            _timeoutCts?.Dispose();
+            _timeoutCts = new CancellationTokenSource();
+
+            var token = _timeoutCts.Token;
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(timeout, token);
+
+                    if (!token.IsCancellationRequested)
+                    {
+                        Console.WriteLine("⌛ Zaman aşımı! Kullanıcıdan onay gelmedi, sekme temizleniyor...");
+                        await CleanUpAsync();
+                    }
+                }
+                catch (TaskCanceledException)
+                {
+                    // İptal edildiğinde buraya düşer, sorun yok.
+                }
+            });
+        }
+
+        private async Task CleanUpAsync()
+        {
+            if (_page != null)
+            {
+                await _page.CloseAsync();
+                _page = null;
+            }
+            _isBusy = false; // Botu kilitten kurtar
         }
     }
 }
