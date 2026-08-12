@@ -24,8 +24,18 @@ namespace ShakyFruits.Services
         private readonly string SELECTOR_GENERATE_BTN = "button.button-pay";
         private readonly string SELECTOR_CREDIT_VALUE = "button.button-pay .price .value";
 
+
+
         // 1. AŞAMA: HAZIRLIK VE FİYAT ALMA
-        public async Task<int> PrepareAndGetCostAsync(bool isRecreate, string? targetUrl = null, string targetModel = "VIDEO 2.6", string targetResolution = "720p")
+        // Parametrelere fruitImagePath, referenceVideoPath ve promptText eklendi
+        public async Task<int> PrepareAndGetCostAsync(
+            bool isRecreate,
+            string fruitImagePath,
+            string referenceVideoPath,
+            string promptText,
+            string? targetUrl = null,
+            string targetModel = "VIDEO 2.6",
+            string targetResolution = "720p")
         {
             if (_isBusy) throw new Exception("Bot şu anda başka bir işlem veya onay bekliyor!");
             _isBusy = true; // Botu diğer isteklere kilitliyoruz
@@ -53,86 +63,66 @@ namespace ShakyFruits.Services
             await _page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
 
             // --- TEST VERİLERİ (İleride bunları da parametre yapabilirsin) ---
-            string fruitImagePath = @"D:\TempAssets\fruit_images\test_cilek.png";
-            string referenceVideoPath = @"D:\TempAssets\reference_videos\ssstik.io_@aeedais_1786078923253.mp4";
-            string promptText = "A cute anthropomorphic strawberry dancing salsa, highly detailed, 4k";
+            /* string fruitImagePath = @"D:\TempAssets\fruit_images\test_cilek.png";
+             string referenceVideoPath = @"D:\TempAssets\reference_videos\ssstik.io_@aeedais_1786078923253.mp4";
+             string promptText = "A cute anthropomorphic strawberry dancing salsa, highly detailed, 4k";*/
             // -----------------------------------------------------------------
 
-            // === DOSYA YÜKLEME MANTIĞI (Eski kodundan birebir alındı) ===
+            // === 1. DOSYA YÜKLEME VE BEKLEME MANTIĞI ===
             if (isRecreate)
             {
-                await Task.Delay(1500);
-                var confirmBtn = _page.GetByRole(AriaRole.Button, new() { Name = "Confirm", Exact = true });
-                if (await confirmBtn.IsVisibleAsync())
-                {
-                    await confirmBtn.ClickAsync();
-                    await Task.Delay(1500);
-                }
+                // ... (Çöp kutusuna tıklama işlemleri) ...
 
-                var deleteBtn = _page.Locator(SELECTOR_DELETE_IMAGE_BTN);
-                if (await deleteBtn.IsVisibleAsync())
-                {
-                    await deleteBtn.ClickAsync();
-                    await Task.Delay(1000);
-                }
-
+                // Resmi yükle
                 await _page.Locator(SELECTOR_IMAGE_INPUT).SetInputFilesAsync(fruitImagePath);
                 await Task.Delay(500);
+
+                // MÜKEMMEL BEKLEME: Resim yükleme animasyonunun kaybolmasını bekle!
                 await _page.Locator(SELECTOR_LOADING_SPINNER).Last.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Hidden, Timeout = 120000 });
             }
             else
             {
+                // Videoyu yükle
                 await _page.Locator(SELECTOR_VIDEO_INPUT).SetInputFilesAsync(referenceVideoPath);
                 await Task.Delay(500);
 
-                var confirmBtn = _page.GetByRole(AriaRole.Button, new() { Name = "Confirm", Exact = true });
-                if (await confirmBtn.IsVisibleAsync())
-                {
-                    await confirmBtn.ClickAsync();
-                    await Task.Delay(1000);
-                    await _page.Locator(SELECTOR_VIDEO_INPUT).SetInputFilesAsync(referenceVideoPath);
-                    await Task.Delay(500);
-                }
+                // ... (Gerekirse Confirm butonuna basma işlemleri) ...
 
+                // MÜKEMMEL BEKLEME 1: Video yükleme animasyonunun kaybolmasını bekle!
                 await _page.Locator(SELECTOR_LOADING_SPINNER).First.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Hidden, Timeout = 120000 });
+
+                // Resmi yükle
                 await _page.Locator(SELECTOR_IMAGE_INPUT).SetInputFilesAsync(fruitImagePath);
                 await Task.Delay(500);
+
+                // MÜKEMMEL BEKLEME 2: Fotoğraf yükleme animasyonunun kaybolmasını bekle!
                 await _page.Locator(SELECTOR_LOADING_SPINNER).Last.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Hidden, Timeout = 120000 });
             }
 
-            // Ortak Adım: Prompt
+            // Ortak Adım: Prompt (Yüklemeler tamamen bittikten sonra yazıyoruz)
             await _page.Locator(SELECTOR_PROMPT_TEXTAREA).FillAsync(promptText);
 
-            // === YENİ: AYARLARI SEÇME VE FİYAT OKUMA ===
 
-            // 1. Model Seçimi
+            // === 2. AYARLARI SEÇME (Ekran temizlendikten sonra) ===
+
+            // 1. Model Seçimi (DÜZELTİLEN KISIM: SELECTOR_MODEL_DROPDOWN kullanıyoruz)
             await _page.Locator(SELECTOR_MODEL_DROPDOWN).ClickAsync();
             await Task.Delay(500);
             await _page.Locator(".el-select-dropdown__item").Filter(new LocatorFilterOptions { HasText = targetModel }).ClickAsync();
 
-            // 2. Çözünürlük Seçimi
+            // 2. Çözünürlük Seçimi (Burası Regex ile korumalı, zaten doğru çalışıyor)
             await _page.Locator(SELECTOR_SETTING_BTN)
-           .Filter(new LocatorFilterOptions
-           {
-               HasTextRegex = new System.Text.RegularExpressions.Regex("720p|1080p", System.Text.RegularExpressions.RegexOptions.IgnoreCase)
-           })
-           .ClickAsync();
-
-            await Task.Delay(500); // Animasyonu bekle
-
-            // Açılan menünün içinden hedeflenen çözünürlüğü seç
-            await _page.Locator(SELECTOR_RESOLUTION_TAB)
-                       .Filter(new LocatorFilterOptions { HasText = targetResolution })
+                       .Filter(new LocatorFilterOptions { HasTextRegex = new System.Text.RegularExpressions.Regex("720p|1080p", System.Text.RegularExpressions.RegexOptions.IgnoreCase) })
                        .ClickAsync();
+            await Task.Delay(500);
 
-            // Sitenin maliyeti hesaplaması için kısa bir süre bekle
-            await Task.Delay(1000);
             await _page.Locator(SELECTOR_RESOLUTION_TAB).Filter(new LocatorFilterOptions { HasText = targetResolution }).ClickAsync();
 
-            // Sitenin maliyeti hesaplaması için kısa bir süre bekle
+            // Sitenin video süresine göre maliyeti hesaplaması için 1 saniye bekle
             await Task.Delay(1000);
 
-            // 3. Maliyeti Oku
+
+            // === 3. MALİYETİ OKUMA ===
             string costText = await _page.Locator(SELECTOR_CREDIT_VALUE).InnerTextAsync();
             string costString = string.Join("", costText.Where(char.IsDigit));
             int requiredCredits = int.TryParse(costString, out int parsed) ? parsed : 0;
@@ -140,7 +130,6 @@ namespace ShakyFruits.Services
             // Arka planda 5 dakikalık geri sayımı başlat
             StartTimeoutTimer(TimeSpan.FromMinutes(5));
 
-            // Fiyatı dön (Ama sekmeyi KAPATMA!)
             return requiredCredits;
         }
 

@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using ShakyFruits.API.DTOs;
+using ShakyFruits.Core.Constants;
 using ShakyFruits.Services;
 
 namespace ShakyFruits.API.Controllers
@@ -14,20 +16,70 @@ namespace ShakyFruits.API.Controllers
             _botService = botService;
         }
 
+        private async Task<string> SaveFileAsync(IFormFile file, string folderName)
+        {
+            if (file == null || file.Length == 0)
+                return string.Empty;
+
+            // Projenin çalıştığı dizinde "Uploads/Images" veya "Uploads/Videos" klasörleri oluşturur
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "Uploads", folderName);
+
+            if (!Directory.Exists(uploadsFolder))
+                Directory.CreateDirectory(uploadsFolder);
+
+            // Dosya isminin çakışmaması için benzersiz (Guid) bir isim veriyoruz
+            var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
+            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+            using (var fileStream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(fileStream);
+            }
+
+            return filePath; // Botun kullanacağı fiziksel dosya yolunu (Örn: C:\...\Uploads\Images\abc.png) döndürür
+        }
+
+
         // 1. AŞAMA: Hazırlık ve Fiyat Alma
         [HttpPost("prepare")]
-        public async Task<IActionResult> Prepare([FromQuery] bool isRecreate, [FromQuery] string? url = null)
+        public async Task<IActionResult> Prepare([FromForm] BotPrepareRequestDto request)
         {
             try
             {
-                // Botu hazırlığa gönderiyoruz. (Model ve çözünürlük şimdilik varsayılan değerleri kullanacak)
-                int cost = await _botService.PrepareAndGetCostAsync(isRecreate, url);
+                string savedImagePath = await SaveFileAsync(request.FruitImage, "Images");
+                if (string.IsNullOrEmpty(savedImagePath))
+                    return BadRequest("Meyve fotoğrafı yüklenmesi zorunludur!");
 
-                return Ok(new
+                string savedVideoPath = string.Empty;
+                if (!request.IsRecreate)
                 {
-                    Message = "Bot dosyaları yükledi ve onayınızı bekliyor!",
-                    RequiredCredits = cost
-                });
+                    if (request.ReferenceVideo == null)
+                        return BadRequest("Sıfırdan üretim için referans video zorunludur!");
+
+                    savedVideoPath = await SaveFileAsync(request.ReferenceVideo, "Videos");
+                }
+
+                // Swagger'ın veya ön yüzün saçma değerler (örn: "string" veya boş) göndermesine karşı koruma
+                if (string.IsNullOrWhiteSpace(request.TargetModel) || request.TargetModel == "string")
+                    request.TargetModel = "VIDEO 2.6";
+
+                if (string.IsNullOrWhiteSpace(request.TargetResolution) || request.TargetResolution == "string")
+                    request.TargetResolution = "720p";
+
+                // TERTEMİZ MİMARİ: Controller artık ne yazacağını düşünmüyor, fabrikadan istiyor.
+                string appliedPrompt = KlingPrompts.GetFixPrompt(request.IsMultipleFruits);
+
+                int cost = await _botService.PrepareAndGetCostAsync(
+                    request.IsRecreate,
+                    savedImagePath,
+                    savedVideoPath,
+                    appliedPrompt,
+                    request.TargetUrl,
+                    request.TargetModel,
+                    request.TargetResolution
+                );
+
+                return Ok(new { Message = "Hazır!", RequiredCredits = cost });
             }
             catch (Exception ex)
             {
