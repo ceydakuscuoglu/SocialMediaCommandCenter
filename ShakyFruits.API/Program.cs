@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using ShakyFruits.API.Workers;
+using ShakyFruits.Core.Services;
 using ShakyFruits.Data;
 using ShakyFruits.Services;
 
@@ -18,6 +20,14 @@ builder.Services.AddSingleton<KlingAiBotService>();
 builder.Services.AddControllers(); // FruitsController'ı bulmasını sağlar
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(); // Görsel arayüz altyapısı
+
+// 1. Queue Manager'ı Singleton olarak ekliyoruz (Uygulamada tek bir kuyruk örneği olmalı)
+builder.Services.AddSingleton<VideoQueueManager>();
+
+// 2. Arka plan işçimizi (BackgroundService) sisteme barındırılan servis olarak kaydediyoruz
+builder.Services.AddHostedService<KlingWorkerService>();
+
+// (Not: KlingAiBotService zaten Transient veya Singleton olarak eklenmiş olmalı)
 
 var app = builder.Build();
 

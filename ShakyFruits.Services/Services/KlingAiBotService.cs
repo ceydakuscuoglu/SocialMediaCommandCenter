@@ -136,16 +136,30 @@ namespace ShakyFruits.Services
         // 2. AŞAMA: ONAY VE ÜRETİM
         public async Task ConfirmAndGenerateAsync()
         {
-            if (_page == null) throw new Exception("Hazırda bekleyen bir Kling AI sayfası yok! Önce hazırlık aşamasını çalıştırın.");
+            if (_page == null)
+                throw new Exception("Aktif bir sayfa bulunamadı. Önce hazırlık aşaması yapılmalı.");
 
-            // Kullanıcı onay verdi, zaman aşımını iptal et
-            _timeoutCts?.Cancel();
+            /* // Yeşil Generate butonunun seçicisi (Bunu kendi projendeki sabite göre güncelle)
+             string generateButtonSelector = ".generate-btn-class";
 
-            // Kredi harcamamak için şimdilik kapalı, hazır olduğunda açabilirsin!
-            // await _page.Locator(SELECTOR_GENERATE_BTN).ClickAsync(); 
+             // Butona tıkla
+             await _page.Locator(generateButtonSelector).ClickAsync();*/
 
-            await Task.Delay(2000); // Tıklama animasyonunu bekle
-            await CleanUpAsync(); // İşlemi bitir ve botu boşa çıkar
+            // TEST KODU: Tıklamayı simüle ediyoruz
+            Console.WriteLine("🟢 [TEST MİMARİSİ] Generate butonuna basıldı olarak kabul ediliyor...");
+            await Task.Delay(2000);
+
+            // Sayfayı güvenlice kapat
+            Console.WriteLine("🟢 [TEST MİMARİSİ] Sayfa temizleniyor ve kapatılıyor...");
+            await _page.CloseAsync();
+            _page = null;
+
+            // Tıklamayı algılaması için kısa bir bekleme
+            await Task.Delay(2000);
+
+            // İşlem bitti, Playwright sayfasını güvenlice kapatarak RAM'i temizle
+            await _page.CloseAsync();
+            _page = null;
         }
 
         // 3. AŞAMA: İPTAL

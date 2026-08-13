@@ -2,6 +2,8 @@
 using ShakyFruits.API.DTOs;
 using ShakyFruits.Core.Constants;
 using ShakyFruits.Core.Helpers;
+using ShakyFruits.Core.Models;
+using ShakyFruits.Core.Services;
 using ShakyFruits.Services;
 
 namespace ShakyFruits.API.Controllers
@@ -11,10 +13,12 @@ namespace ShakyFruits.API.Controllers
     public class BotTestController : ControllerBase
     {
         private readonly KlingAiBotService _botService;
+        private readonly VideoQueueManager _queueManager; // KUYRUK YÖNETİCİSİ EKLENDİ
 
-        public BotTestController(KlingAiBotService botService)
+        public BotTestController(KlingAiBotService botService, VideoQueueManager queueManager)
         {
             _botService = botService;
+            _queueManager = queueManager;
         }
 
         private async Task<string> SaveFileAsync(IFormFile file, string folderName)
@@ -103,16 +107,34 @@ namespace ShakyFruits.API.Controllers
 
         // 2. AŞAMA: Onay ve Üretim
         [HttpPost("confirm")]
-        public async Task<IActionResult> Confirm()
+        public async Task<IActionResult> Confirm([FromBody] BotConfirmRequestDto request)
         {
             try
             {
-                await _botService.ConfirmAndGenerateAsync();
-                return Ok("Onay verildi! Üretim simüle edildi ve sekme kapatıldı.");
+                // 1. Gelen isteği Kuyruk İş Modeline (Job) dönüştür
+                var job = new VideoGenerationJob
+                {
+                    IsRecreate = request.IsRecreate,
+                    TargetUrl = request.TargetUrl,
+                    SavedImagePath = request.SavedImagePath,
+                    SavedVideoPath = request.SavedVideoPath,
+                    AppliedPrompt = KlingPrompts.GetFixPrompt(request.IsMultipleFruits),
+                    TargetModel = request.TargetModel,
+                    TargetResolution = request.TargetResolution
+                };
+
+                // 2. İşi Background Worker'ın dinlediği kuyruğa fırlat!
+                await _queueManager.QueueJobAsync(job);
+
+                return Ok(new
+                {
+                    Message = "Videonuz başarıyla sıraya alındı! Arka planda üretilecek.",
+                    JobId = job.JobId
+                });
             }
             catch (Exception ex)
             {
-                return BadRequest($"Hata: {ex.Message}");
+                return BadRequest($"Kuyruğa eklenirken hata oluştu: {ex.Message}");
             }
         }
 
