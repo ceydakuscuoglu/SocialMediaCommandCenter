@@ -54,27 +54,43 @@ namespace ShakyFruits.API.Controllers
                 string savedVideoPath = string.Empty;
                 if (!request.IsRecreate)
                 {
-                    if (request.ReferenceVideo == null) return BadRequest("Referans video zorunludur!");
+                    if (request.ReferenceVideo == null) return BadRequest("Sıfırdan üretim için referans video zorunludur!");
                     savedVideoPath = await SaveFileAsync(request.ReferenceVideo, "Videos");
                 }
 
-                // --- YENİ ROKET MİMARİSİ ---
-
-                // 2. Videonun süresini oku (Recreate ise eski bir videonun süresini varsayabilir veya DB'den çekebilirsin)
-                double videoDuration = request.IsRecreate ? 5.0 : KlingCostCalculator.GetVideoDurationInSeconds(savedVideoPath);
-
-                // 3. Güvenlik Koruma Kalkanı
+                // 2. Güvenlik ve Prompt Ayarları
                 if (string.IsNullOrWhiteSpace(request.TargetModel) || request.TargetModel == "string") request.TargetModel = "VIDEO 2.6";
                 if (string.IsNullOrWhiteSpace(request.TargetResolution) || request.TargetResolution == "string") request.TargetResolution = "720p";
 
-                // 4. Maliyeti kendi C# sunucumuzda hesapla! (Bot açılmıyor, kilitlenme yok)
-                int calculatedCost = KlingCostCalculator.CalculateCost(request.TargetModel, request.TargetResolution, videoDuration);
+                string appliedPrompt = KlingPrompts.GetFixPrompt(request.IsMultipleFruits);
 
-                // İLERİDE BURAYA EKLENECEK: Bu istek veritabanına "Onay Bekliyor" statüsüyle kaydedilecek ve bir Guid (ID) dönecek.
+                // 3. HİBRİT MALİYET HESAPLAMA MİMARİSİ
+                int calculatedCost = 0;
+                double videoDuration = 0;
+
+                if (request.IsRecreate)
+                {
+                    // DERİN YOL (Playwright): Video bizde değil. Bot URL'ye gider, fotoğrafı yükler ve UI'dan okur.
+                    calculatedCost = await _botService.PrepareAndGetCostAsync(
+                        request.IsRecreate,
+                        savedImagePath,
+                        savedVideoPath, // Recreate olduğu için boş gidecek, sorun yok
+                        appliedPrompt,
+                        request.TargetUrl,
+                        request.TargetModel,
+                        request.TargetResolution
+                    );
+                }
+                else
+                {
+                    // HIZLI YOL (C# Matematik Motoru): Video bizde. Botu hiç açmadan anında hesapla!
+                    videoDuration = KlingCostCalculator.GetVideoDurationInSeconds(savedVideoPath);
+                    calculatedCost = KlingCostCalculator.CalculateCost(request.TargetModel, request.TargetResolution, videoDuration);
+                }
 
                 return Ok(new
                 {
-                    Message = "Dosyalar yüklendi ve maliyet anında hesaplandı. Onayınız bekleniyor.",
+                    Message = request.IsRecreate ? "Bot URL'den maliyeti okudu ve onay bekliyor." : "Dosyalar yüklendi ve maliyet anında hesaplandı. Onayınız bekleniyor.",
                     CalculatedCredits = calculatedCost,
                     VideoDurationSeconds = videoDuration
                 });
