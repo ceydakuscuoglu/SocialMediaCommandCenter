@@ -1,10 +1,14 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using ShakyFruits.API.DTOs;
 using ShakyFruits.Core.Constants;
+using ShakyFruits.Core.Entities;
+using ShakyFruits.Core.Enums;
 using ShakyFruits.Core.Helpers;
 using ShakyFruits.Core.Models;
 using ShakyFruits.Core.Services;
 using ShakyFruits.Services;
+using ShakyFruits.Data;
 
 namespace ShakyFruits.API.Controllers
 {
@@ -14,11 +18,16 @@ namespace ShakyFruits.API.Controllers
     {
         private readonly KlingAiBotService _botService;
         private readonly VideoQueueManager _queueManager; // KUYRUK YÖNETİCİSİ EKLENDİ
+        private readonly ApplicationDbContext _context;
 
-        public BotTestController(KlingAiBotService botService, VideoQueueManager queueManager)
+        public BotTestController(
+            KlingAiBotService botService,
+            VideoQueueManager queueManager,
+            ApplicationDbContext context) // <-- YENİ PARAMETRE
         {
             _botService = botService;
             _queueManager = queueManager;
+            _context = context; // <-- ATAMA YAPILIYOR
         }
 
         private async Task<string> SaveFileAsync(IFormFile file, string folderName)
@@ -111,30 +120,35 @@ namespace ShakyFruits.API.Controllers
         {
             try
             {
-                // 1. Gelen isteği Kuyruk İş Modeline (Job) dönüştür
-                var job = new VideoGenerationJob
+                // 1. Veritabanı modelini oluştur
+                var newGeneration = new VideoGeneration
                 {
+                    FruitAssetId = request.FruitAssetId,
+                    ReferenceVideoId = request.ReferenceVideoId,
                     IsRecreate = request.IsRecreate,
                     TargetUrl = request.TargetUrl,
-                    SavedImagePath = request.SavedImagePath,
-                    SavedVideoPath = request.SavedVideoPath,
                     AppliedPrompt = KlingPrompts.GetFixPrompt(request.IsMultipleFruits),
                     TargetModel = request.TargetModel,
-                    TargetResolution = request.TargetResolution
+                    TargetResolution = request.TargetResolution,
+                    Status = GenerationStatus.Pending
                 };
 
-                // 2. İşi Background Worker'ın dinlediği kuyruğa fırlat!
-                await _queueManager.QueueJobAsync(job);
+                // 2. Veritabanına kaydet (EF Core otomatik olarak bir ID atayacaktır)
+                _context.VideoGenerations.Add(newGeneration);
+                await _context.SaveChangesAsync();
+
+                // 3. Sadece oluşan ID'yi Worker'ın dinlediği kuyruğa gönder
+                await _queueManager.QueueJobAsync(newGeneration.Id);
 
                 return Ok(new
                 {
-                    Message = "Videonuz başarıyla sıraya alındı! Arka planda üretilecek.",
-                    JobId = job.JobId
+                    Message = "Videonuz sıraya alındı!",
+                    JobId = newGeneration.Id
                 });
             }
             catch (Exception ex)
             {
-                return BadRequest($"Kuyruğa eklenirken hata oluştu: {ex.Message}");
+                return BadRequest($"Hata: {ex.Message}");
             }
         }
 

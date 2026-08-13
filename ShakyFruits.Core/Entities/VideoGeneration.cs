@@ -1,24 +1,29 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using ShakyFruits.Core.Enums;
+﻿using ShakyFruits.Core.Enums;
 
 namespace ShakyFruits.Core.Entities
 {
     public class VideoGeneration : BaseEntity
     {
-        // Foreign Keys (Yabancı Anahtarlar)
+        // 1. İlişkiler (Dosya yollarını bu tablolardan çekeceğiz)
         public int FruitAssetId { get; set; }
-        public int ReferenceVideoId { get; set; }
+        public virtual FruitAsset FruitAsset { get; set; }
 
+        public int? ReferenceVideoId { get; set; } // Recreate durumunda boş olabilir
+        public virtual ReferenceVideo? ReferenceVideo { get; set; }
+
+        // 2. Kling AI Ayarları
+        public bool IsRecreate { get; set; }
+        public string? TargetUrl { get; set; }
+        public string AppliedPrompt { get; set; }
+        public string TargetModel { get; set; } = "VIDEO 2.6";
+        public string TargetResolution { get; set; } = "720p";
+
+        // 3. Kuyruk ve İzleme
         public GenerationStatus Status { get; set; } = GenerationStatus.Pending;
+        public string? ErrorMessage { get; set; }
 
-        // Üretim bittikten sonra dolacak alanlar
-        public string? OutputVideoPath { get; set; } // Çıktı video yolu
-        public string? AiGeneratedCaption { get; set; } // Otomatik üretilen hashtagli metin
-
-        // Navigation Properties (EF Core'un tabloları bağlaması için 'virtual' anahtar kelimesi önemlidir)
-        public virtual FruitAsset FruitAsset { get; set; } // Değişen kısım
-        public virtual ReferenceVideo ReferenceVideo { get; set; }
+        // 4. Çıktılar (İleride kullanılacak)
+        public string? OutputVideoPath { get; set; }
+        public string? AiGeneratedCaption { get; set; }
     }
 }

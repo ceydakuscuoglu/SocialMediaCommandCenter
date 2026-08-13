@@ -1,71 +1,88 @@
-﻿using Microsoft.Extensions.Hosting;
+﻿using Microsoft.EntityFrameworkCore; // Include() fonksiyonu için gerekli
+using Microsoft.Extensions.DependencyInjection; // IServiceScopeFactory için gerekli
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using ShakyFruits.Core.Models;
+using ShakyFruits.Core.Enums;
 using ShakyFruits.Core.Services;
 using ShakyFruits.Services;
+using ShakyFruits.Data;
+// DbContext'inin bulunduğu namespace'i (Örn: ShakyFruits.Data) eklemeyi unutma
 
 namespace ShakyFruits.API.Workers
 {
-    // BackgroundService, uygulamanın yaşam döngüsü boyunca arka planda çalışan bir .NET yapısıdır.
     public class KlingWorkerService : BackgroundService
     {
         private readonly VideoQueueManager _queueManager;
         private readonly KlingAiBotService _botService;
+        private readonly IServiceScopeFactory _scopeFactory; // EF Core bağlantısı için
         private readonly ILogger<KlingWorkerService> _logger;
 
         public KlingWorkerService(
             VideoQueueManager queueManager,
             KlingAiBotService botService,
+            IServiceScopeFactory scopeFactory,
             ILogger<KlingWorkerService> logger)
         {
             _queueManager = queueManager;
             _botService = botService;
+            _scopeFactory = scopeFactory;
             _logger = logger;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("Kling Video Üretim İşçisi (Worker) arka planda çalışmaya başladı...");
-
-            try
+            await foreach (var jobId in _queueManager.ReadAllAsync(stoppingToken))
             {
-                // Kuyruğa yeni bir iş geldikçe bu döngü tetiklenir
-                await foreach (var job in _queueManager.ReadAllAsync(stoppingToken))
+                // Her iş için yeni, temiz bir veritabanı bağlantısı açıyoruz
+                using (var scope = _scopeFactory.CreateScope())
                 {
-                    _logger.LogInformation($"Yeni iş alındı. JobId: {job.JobId}");
+                    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+                    // 1. İşi, ilişkili olduğu dosya yollarıyla (FruitAsset ve ReferenceVideo) birlikte çekiyoruz
+                    var job = await dbContext.VideoGenerations
+                        .Include(x => x.FruitAsset)
+                        .Include(x => x.ReferenceVideo)
+                        .FirstOrDefaultAsync(x => x.Id == jobId, stoppingToken);
+
+                    if (job == null) continue;
 
                     try
                     {
-                        // TODO: İleride burada veritabanındaki (Eyotek tarzı bir mimariyle) 
-                        // işin statüsünü "İşleniyor (Processing)" olarak güncelleyeceğiz.
+                        // 2. Statüyü "İşleniyor" yap
+                        job.Status = GenerationStatus.Processing;
+                        await dbContext.SaveChangesAsync(stoppingToken);
 
-                        // Playwright Botunu Tetikle!
+                        // 3. İlişkili tablolardan gerçek dosya yollarını oku (Null korumalı)
+                        string imagePath = job.FruitAsset.ImagePath;
+                        string videoPath = job.ReferenceVideo?.VideoPath ?? string.Empty;
+
+                        // 4. Playwright Botunu Tetikle
                         await _botService.PrepareAndGetCostAsync(
                             job.IsRecreate,
-                            job.SavedImagePath,
-                            job.SavedVideoPath,
+                            imagePath,
+                            videoPath,
                             job.AppliedPrompt,
                             job.TargetUrl,
                             job.TargetModel,
                             job.TargetResolution
                         );
 
-                        // İşlemleri bitir ve Generate butonuna bas (Bu metodu bot servisine ekleyeceğiz)
                         await _botService.ConfirmAndGenerateAsync();
 
-                        _logger.LogInformation($"İş başarıyla tamamlandı. JobId: {job.JobId}");
+                        // 5. Başarılı olursa statüyü güncelle
+                        job.Status = GenerationStatus.Completed;
+                        await dbContext.SaveChangesAsync(stoppingToken);
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError($"Bot çalışırken hata oluştu. JobId: {job.JobId}, Hata: {ex.Message}");
-                        // TODO: Hata durumunda veritabanında statüyü "Hata (Failed)" olarak güncelle.
+                        // 6. Hata olursa sebebiyle birlikte veritabanına yaz
+                        job.Status = GenerationStatus.Failed;
+                        job.ErrorMessage = ex.Message;
+                        await dbContext.SaveChangesAsync(stoppingToken);
+
+                        _logger.LogError($"Bot hatası (JobId: {jobId}): {ex.Message}");
                     }
                 }
-            }
-            catch (OperationCanceledException)
-            {
-                // Uygulama kapanırken (Ctrl+C) fırlatılır, güvenli çıkış sağlanır.
-                _logger.LogInformation("Worker servisi durduruluyor...");
             }
         }
     }
