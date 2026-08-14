@@ -9,6 +9,7 @@ using ShakyFruits.Core.Models;
 using ShakyFruits.Core.Services;
 using ShakyFruits.Services;
 using ShakyFruits.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace ShakyFruits.API.Controllers
 {
@@ -152,12 +153,36 @@ namespace ShakyFruits.API.Controllers
             }
         }
 
-        // 3. AŞAMA: İptal
-        [HttpPost("cancel")]
-        public async Task<IActionResult> Cancel()
+        [HttpGet("generations")]
+        public async Task<IActionResult> GetGenerations()
         {
-            await _botService.CancelGenerationAsync();
-            return Ok("İşlem iptal edildi, tarayıcı sekmesi temizlendi.");
+            try
+            {
+                // Veritabanından en son eklenen işleri en üstte olacak şekilde (OrderByDescending) çekiyoruz
+                var generations = await _context.VideoGenerations
+                    .Include(x => x.FruitAsset)
+                    .Include(x => x.ReferenceVideo)
+                    .OrderByDescending(x => x.Id)
+                    .Select(x => new VideoGenerationListDto
+                    {
+                        Id = x.Id,
+                        FruitImagePath = x.FruitAsset.ImagePath,
+                        // Null koruması: Eğer Recreate ise video yoktur, null döner
+                        ReferenceVideoPath = x.ReferenceVideo != null ? x.ReferenceVideo.VideoPath : null,
+                        IsRecreate = x.IsRecreate,
+                        AppliedPrompt = x.AppliedPrompt,
+                        Status = x.Status.ToString(), // Enum'u doğrudan metne çeviriyoruz ("Pending", "Completed" vs.)
+                        ErrorMessage = x.ErrorMessage,
+                        OutputVideoPath = x.OutputVideoPath
+                    })
+                    .ToListAsync();
+
+                return Ok(generations);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Listeleme sırasında hata oluştu: {ex.Message}");
+            }
         }
     }
 }

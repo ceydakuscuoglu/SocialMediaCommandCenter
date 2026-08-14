@@ -169,20 +169,41 @@ namespace ShakyFruits.Data.Migrations
                     b.Property<string>("AiGeneratedCaption")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("AppliedPrompt")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("FruitAssetId")
                         .HasColumnType("int");
 
+                    b.Property<bool>("IsRecreate")
+                        .HasColumnType("bit");
+
                     b.Property<string>("OutputVideoPath")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("ReferenceVideoId")
+                    b.Property<int?>("ReferenceVideoId")
                         .HasColumnType("int");
 
                     b.Property<string>("Status")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TargetModel")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TargetResolution")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TargetUrl")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -222,9 +243,7 @@ namespace ShakyFruits.Data.Migrations
 
                     b.HasOne("ShakyFruits.Core.Entities.ReferenceVideo", "ReferenceVideo")
                         .WithMany("Generations")
-                        .HasForeignKey("ReferenceVideoId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("ReferenceVideoId");
 
                     b.Navigation("FruitAsset");
 

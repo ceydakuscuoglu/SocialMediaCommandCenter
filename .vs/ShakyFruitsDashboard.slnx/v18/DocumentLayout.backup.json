@@ -1,0 +1,249 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\Projects\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{15DC13E3-B285-42EA-A08D-60AAD42C9C73}|ShakyFruits.API\\ShakyFruits.API.csproj|d:\\projects\\shakyfruits.api\\controllers\\bottestcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{15DC13E3-B285-42EA-A08D-60AAD42C9C73}|ShakyFruits.API\\ShakyFruits.API.csproj|solutionrelative:shakyfruits.api\\controllers\\bottestcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{49B81821-D158-34A0-212C-4D72E39953A1}|ShakyFruits.Services\\ShakyFruits.Services.csproj|d:\\projects\\shakyfruits.services\\services\\klingaibotservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{49B81821-D158-34A0-212C-4D72E39953A1}|ShakyFruits.Services\\ShakyFruits.Services.csproj|solutionrelative:shakyfruits.services\\services\\klingaibotservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{15DC13E3-B285-42EA-A08D-60AAD42C9C73}|ShakyFruits.API\\ShakyFruits.API.csproj|d:\\projects\\shakyfruits.api\\dtos\\videogenerationlistdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{15DC13E3-B285-42EA-A08D-60AAD42C9C73}|ShakyFruits.API\\ShakyFruits.API.csproj|solutionrelative:shakyfruits.api\\dtos\\videogenerationlistdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{7CE0D36F-430D-C137-DA1F-154E05E0C65A}|ShakyFruits.Core\\ShakyFruits.Core.csproj|d:\\projects\\shakyfruits.core\\models\\videogenerationjob.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7CE0D36F-430D-C137-DA1F-154E05E0C65A}|ShakyFruits.Core\\ShakyFruits.Core.csproj|solutionrelative:shakyfruits.core\\models\\videogenerationjob.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{7CE0D36F-430D-C137-DA1F-154E05E0C65A}|ShakyFruits.Core\\ShakyFruits.Core.csproj|d:\\projects\\shakyfruits.core\\enums\\enums.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7CE0D36F-430D-C137-DA1F-154E05E0C65A}|ShakyFruits.Core\\ShakyFruits.Core.csproj|solutionrelative:shakyfruits.core\\enums\\enums.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{15DC13E3-B285-42EA-A08D-60AAD42C9C73}|ShakyFruits.API\\ShakyFruits.API.csproj|d:\\projects\\shakyfruits.api\\workers\\klingworkerservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{15DC13E3-B285-42EA-A08D-60AAD42C9C73}|ShakyFruits.API\\ShakyFruits.API.csproj|solutionrelative:shakyfruits.api\\workers\\klingworkerservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{15DC13E3-B285-42EA-A08D-60AAD42C9C73}|ShakyFruits.API\\ShakyFruits.API.csproj|d:\\projects\\shakyfruits.api\\dtos\\botconfirmrequestdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{15DC13E3-B285-42EA-A08D-60AAD42C9C73}|ShakyFruits.API\\ShakyFruits.API.csproj|solutionrelative:shakyfruits.api\\dtos\\botconfirmrequestdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{49B81821-D158-34A0-212C-4D72E39953A1}|ShakyFruits.Services\\ShakyFruits.Services.csproj|d:\\projects\\shakyfruits.services\\services\\videoqueuemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{49B81821-D158-34A0-212C-4D72E39953A1}|ShakyFruits.Services\\ShakyFruits.Services.csproj|solutionrelative:shakyfruits.services\\services\\videoqueuemanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{7CE0D36F-430D-C137-DA1F-154E05E0C65A}|ShakyFruits.Core\\ShakyFruits.Core.csproj|d:\\projects\\shakyfruits.core\\entities\\videogeneration.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7CE0D36F-430D-C137-DA1F-154E05E0C65A}|ShakyFruits.Core\\ShakyFruits.Core.csproj|solutionrelative:shakyfruits.core\\entities\\videogeneration.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{15DC13E3-B285-42EA-A08D-60AAD42C9C73}|ShakyFruits.API\\ShakyFruits.API.csproj|d:\\projects\\shakyfruits.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{15DC13E3-B285-42EA-A08D-60AAD42C9C73}|ShakyFruits.API\\ShakyFruits.API.csproj|solutionrelative:shakyfruits.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{7CE0D36F-430D-C137-DA1F-154E05E0C65A}|ShakyFruits.Core\\ShakyFruits.Core.csproj|d:\\projects\\shakyfruits.core\\entities\\referencevideo.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7CE0D36F-430D-C137-DA1F-154E05E0C65A}|ShakyFruits.Core\\ShakyFruits.Core.csproj|solutionrelative:shakyfruits.core\\entities\\referencevideo.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{7CE0D36F-430D-C137-DA1F-154E05E0C65A}|ShakyFruits.Core\\ShakyFruits.Core.csproj|d:\\projects\\shakyfruits.core\\entities\\fruittype.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7CE0D36F-430D-C137-DA1F-154E05E0C65A}|ShakyFruits.Core\\ShakyFruits.Core.csproj|solutionrelative:shakyfruits.core\\entities\\fruittype.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{7CE0D36F-430D-C137-DA1F-154E05E0C65A}|ShakyFruits.Core\\ShakyFruits.Core.csproj|d:\\projects\\shakyfruits.core\\helpers\\klingcostcalculator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7CE0D36F-430D-C137-DA1F-154E05E0C65A}|ShakyFruits.Core\\ShakyFruits.Core.csproj|solutionrelative:shakyfruits.core\\helpers\\klingcostcalculator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{15DC13E3-B285-42EA-A08D-60AAD42C9C73}|ShakyFruits.API\\ShakyFruits.API.csproj|d:\\projects\\shakyfruits.api\\dtos\\botpreparerequestdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{15DC13E3-B285-42EA-A08D-60AAD42C9C73}|ShakyFruits.API\\ShakyFruits.API.csproj|solutionrelative:shakyfruits.api\\dtos\\botpreparerequestdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 12,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "VideoGenerationListDto.cs",
+              "DocumentMoniker": "D:\\Projects\\ShakyFruits.API\\DTOs\\VideoGenerationListDto.cs",
+              "RelativeDocumentMoniker": "ShakyFruits.API\\DTOs\\VideoGenerationListDto.cs",
+              "ToolTip": "D:\\Projects\\ShakyFruits.API\\DTOs\\VideoGenerationListDto.cs",
+              "RelativeToolTip": "ShakyFruits.API\\DTOs\\VideoGenerationListDto.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABMAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-14T10:13:37.42Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Enums.cs",
+              "DocumentMoniker": "D:\\Projects\\ShakyFruits.Core\\Enums\\Enums.cs",
+              "RelativeDocumentMoniker": "ShakyFruits.Core\\Enums\\Enums.cs",
+              "ToolTip": "D:\\Projects\\ShakyFruits.Core\\Enums\\Enums.cs",
+              "RelativeToolTip": "ShakyFruits.Core\\Enums\\Enums.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-13T15:18:40.004Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "VideoGeneration.cs",
+              "DocumentMoniker": "D:\\Projects\\ShakyFruits.Core\\Entities\\VideoGeneration.cs",
+              "RelativeDocumentMoniker": "ShakyFruits.Core\\Entities\\VideoGeneration.cs",
+              "ToolTip": "D:\\Projects\\ShakyFruits.Core\\Entities\\VideoGeneration.cs",
+              "RelativeToolTip": "ShakyFruits.Core\\Entities\\VideoGeneration.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABwAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-13T08:06:21.657Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "BotConfirmRequestDto.cs",
+              "DocumentMoniker": "D:\\Projects\\ShakyFruits.API\\DTOs\\BotConfirmRequestDto.cs",
+              "RelativeDocumentMoniker": "ShakyFruits.API\\DTOs\\BotConfirmRequestDto.cs",
+              "ToolTip": "D:\\Projects\\ShakyFruits.API\\DTOs\\BotConfirmRequestDto.cs",
+              "RelativeToolTip": "ShakyFruits.API\\DTOs\\BotConfirmRequestDto.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-13T07:50:21.405Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "Program.cs",
+              "DocumentMoniker": "D:\\Projects\\ShakyFruits.API\\Program.cs",
+              "RelativeDocumentMoniker": "ShakyFruits.API\\Program.cs",
+              "ToolTip": "D:\\Projects\\ShakyFruits.API\\Program.cs",
+              "RelativeToolTip": "ShakyFruits.API\\Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAB0AAABRAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-13T07:43:41.89Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "KlingWorkerService.cs",
+              "DocumentMoniker": "D:\\Projects\\ShakyFruits.API\\Workers\\KlingWorkerService.cs",
+              "RelativeDocumentMoniker": "ShakyFruits.API\\Workers\\KlingWorkerService.cs",
+              "ToolTip": "D:\\Projects\\ShakyFruits.API\\Workers\\KlingWorkerService.cs",
+              "RelativeToolTip": "ShakyFruits.API\\Workers\\KlingWorkerService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAAXAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-13T07:43:19.449Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "ReferenceVideo.cs",
+              "DocumentMoniker": "D:\\Projects\\ShakyFruits.Core\\Entities\\ReferenceVideo.cs",
+              "RelativeDocumentMoniker": "ShakyFruits.Core\\Entities\\ReferenceVideo.cs",
+              "ToolTip": "D:\\Projects\\ShakyFruits.Core\\Entities\\ReferenceVideo.cs",
+              "RelativeToolTip": "ShakyFruits.Core\\Entities\\ReferenceVideo.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-13T07:40:35.987Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "FruitType.cs",
+              "DocumentMoniker": "D:\\Projects\\ShakyFruits.Core\\Entities\\FruitType.cs",
+              "RelativeDocumentMoniker": "ShakyFruits.Core\\Entities\\FruitType.cs",
+              "ToolTip": "D:\\Projects\\ShakyFruits.Core\\Entities\\FruitType.cs",
+              "RelativeToolTip": "ShakyFruits.Core\\Entities\\FruitType.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-13T07:40:34.156Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "VideoQueueManager.cs",
+              "DocumentMoniker": "D:\\Projects\\ShakyFruits.Services\\Services\\VideoQueueManager.cs",
+              "RelativeDocumentMoniker": "ShakyFruits.Services\\Services\\VideoQueueManager.cs",
+              "ToolTip": "D:\\Projects\\ShakyFruits.Services\\Services\\VideoQueueManager.cs",
+              "RelativeToolTip": "ShakyFruits.Services\\Services\\VideoQueueManager.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAB4AAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-13T07:39:54.222Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "VideoGenerationJob.cs",
+              "DocumentMoniker": "D:\\Projects\\ShakyFruits.Core\\Models\\VideoGenerationJob.cs",
+              "RelativeDocumentMoniker": "ShakyFruits.Core\\Models\\VideoGenerationJob.cs",
+              "ToolTip": "D:\\Projects\\ShakyFruits.Core\\Models\\VideoGenerationJob.cs",
+              "RelativeToolTip": "ShakyFruits.Core\\Models\\VideoGenerationJob.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABIAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-13T07:38:55.075Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "KlingAiBotService.cs",
+              "DocumentMoniker": "D:\\Projects\\ShakyFruits.Services\\Services\\KlingAiBotService.cs",
+              "RelativeDocumentMoniker": "ShakyFruits.Services\\Services\\KlingAiBotService.cs",
+              "ToolTip": "D:\\Projects\\ShakyFruits.Services\\Services\\KlingAiBotService.cs",
+              "RelativeToolTip": "ShakyFruits.Services\\Services\\KlingAiBotService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAADsAAAATAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-12T11:09:10.394Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "BotPrepareRequestDto.cs",
+              "DocumentMoniker": "D:\\Projects\\ShakyFruits.API\\DTOs\\BotPrepareRequestDto.cs",
+              "RelativeDocumentMoniker": "ShakyFruits.API\\DTOs\\BotPrepareRequestDto.cs",
+              "ToolTip": "D:\\Projects\\ShakyFruits.API\\DTOs\\BotPrepareRequestDto.cs",
+              "RelativeToolTip": "ShakyFruits.API\\DTOs\\BotPrepareRequestDto.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAQAAAAlAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-12T10:56:38.308Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "BotTestController.cs",
+              "DocumentMoniker": "D:\\Projects\\ShakyFruits.API\\Controllers\\BotTestController.cs",
+              "RelativeDocumentMoniker": "ShakyFruits.API\\Controllers\\BotTestController.cs",
+              "ToolTip": "D:\\Projects\\ShakyFruits.API\\Controllers\\BotTestController.cs",
+              "RelativeToolTip": "ShakyFruits.API\\Controllers\\BotTestController.cs",
+              "ViewState": "AgIAAJAAAAAAAAAAAIAwwLsAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-07T09:28:33.849Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "KlingCostCalculator.cs",
+              "DocumentMoniker": "D:\\Projects\\ShakyFruits.Core\\Helpers\\KlingCostCalculator.cs",
+              "RelativeDocumentMoniker": "ShakyFruits.Core\\Helpers\\KlingCostCalculator.cs",
+              "ToolTip": "D:\\Projects\\ShakyFruits.Core\\Helpers\\KlingCostCalculator.cs",
+              "RelativeToolTip": "ShakyFruits.Core\\Helpers\\KlingCostCalculator.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABEAAABLAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-08-12T11:56:52.062Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
