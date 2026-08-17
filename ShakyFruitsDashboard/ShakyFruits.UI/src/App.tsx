@@ -14,9 +14,9 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Activity, Clapperboard, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Activity, Clapperboard, CheckCircle2, Clock, AlertCircle, Play } from "lucide-react";
 
-// Mock Data for Kling AI Automation
 const videoJobs = [
   {
     id: "SF-1042",
@@ -52,7 +52,6 @@ const videoJobs = [
   },
 ];
 
-// Helper function to dynamically set badge colors based on status
 const getStatusBadge = (status: string) => {
   switch (status) {
     case "Completed":
@@ -69,20 +68,30 @@ const getStatusBadge = (status: string) => {
 
 function App() {
   return (
+    /* Karanlık modu test etmek istersen aşağıdaki div'in className'ine "dark" ekleyebilirsin: className="dark min-h-screen..." */
     <div className="min-h-screen bg-background p-8 text-foreground font-sans">
       
-      {/* Header & Stats Area */}
-      <div className="flex flex-col gap-2 mb-8">
-        <h1 className="text-4xl font-bold tracking-tight flex items-center gap-3">
-          <Clapperboard className="w-8 h-8 text-zinc-900 dark:text-zinc-100" />
-          ShakyFruits Command Center
-        </h1>
+      {/* Header & Action Area */}
+      <div className="flex flex-col gap-4 mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <h1 className="text-4xl font-bold tracking-tight flex items-center gap-3">
+            {/* İkon rengi artık senin temanın ana rengi (Primary) */}
+            <Clapperboard className="w-9 h-9 text-primary" />
+            <span>ShakyFruits Command Center</span>
+          </h1>
+          
+          {/* Yeni temanın rengini alacak Buton */}
+          <Button className="gap-2 shadow-md">
+            <Play className="w-4 h-4 fill-current" />
+            New Generation Job
+          </Button>
+        </div>
+        
         <p className="text-muted-foreground text-lg">
           Kling AI Video Automation & Content Management
         </p>
       </div>
 
-      {/* Main Content - Jobs Table */}
       <Card className="shadow-sm border-border/40">
         <CardHeader className="bg-muted/20 border-b border-border/40 pb-4">
           <CardTitle className="text-xl">Recent Production Jobs</CardTitle>
