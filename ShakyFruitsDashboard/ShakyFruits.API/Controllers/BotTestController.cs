@@ -173,7 +173,8 @@ namespace ShakyFruits.API.Controllers
                         AppliedPrompt = x.AppliedPrompt,
                         Status = x.Status.ToString(), // Enum'u doğrudan metne çeviriyoruz ("Pending", "Completed" vs.)
                         ErrorMessage = x.ErrorMessage,
-                        OutputVideoPath = x.OutputVideoPath
+                        OutputVideoPath = x.OutputVideoPath,
+                        CreatedAt = x.CreatedAt
                     })
                     .ToListAsync();
 

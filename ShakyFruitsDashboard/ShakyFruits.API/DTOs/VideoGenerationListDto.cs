@@ -16,5 +16,8 @@
 
         public string? ErrorMessage { get; set; }
         public string? OutputVideoPath { get; set; }
+
+        // Yeni eklenen alan: Videonun kuyruğa alınma/oluşturulma tarihi
+        public DateTime CreatedAt { get; set; }
     }
 }

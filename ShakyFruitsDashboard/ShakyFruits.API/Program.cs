@@ -6,6 +6,17 @@ using ShakyFruits.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Ön yüz (Tauri/Vite) için CORS politikasını tanımlıyoruz
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("TauriCorsPolicy", policy =>
+    {
+        policy.AllowAnyOrigin()  // Burası değişti! (http://localhost:1420 yerine)
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 // 1. Veritabanı Bağlantısı
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -30,6 +41,11 @@ builder.Services.AddHostedService<KlingWorkerService>();
 // (Not: KlingAiBotService zaten Transient veya Singleton olarak eklenmiş olmalı)
 
 var app = builder.Build();
+
+app.UseRouting();
+// CORS politikasını uygulamaya dahil ediyoruz
+app.UseCors("TauriCorsPolicy");
+
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
