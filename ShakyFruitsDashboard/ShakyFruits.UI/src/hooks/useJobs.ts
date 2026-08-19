@@ -8,6 +8,8 @@ export const useJobs = () => {
         // ShakyFruits otomasyonu arka planda çalıştığı için tabloyu belirli aralıklarla (örn: her 10 saniyede bir) 
         // sessizce güncelleyerek (polling) canlı bir Dashboard deneyimi sunabiliriz. 
         // İstersen aşağıdaki satırı aktif edebilirsin:
-        refetchInterval: 60000,
+        refetchInterval: 5000,
+        // Kullanıcı sekmeler arası geçiş yaptığında gereksiz yere hemen tetiklenmesini önler
+        refetchOnWindowFocus: false,
     });
 };
