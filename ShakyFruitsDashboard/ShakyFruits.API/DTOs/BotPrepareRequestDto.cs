@@ -24,5 +24,11 @@ namespace ShakyFruits.API.DTOs
 
         // Local Upload (Sıfırdan yükleme) senaryosu için gerekli, Recreate için boş gelebilir
         public IFormFile? ReferenceVideo { get; set; }
+
+        // YENİ: Kullanıcı isterse meyveye özel isim verebilecek
+        public string? FruitTitle { get; set; }
+
+        // YENİ: Kullanıcı isterse videodaki dansın türünü yazabilecek
+        public string? DanceStyle { get; set; }
     }
 }

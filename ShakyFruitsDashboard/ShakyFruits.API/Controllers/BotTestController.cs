@@ -61,7 +61,7 @@ namespace ShakyFruits.API.Controllers
         {
             try
             {
-                // 1. Dosyaları sunucuya kaydet
+                // 1. Dosyaları sunucuya (diske) kaydet
                 string savedImagePath = await SaveFileAsync(request.FruitImage, "Images");
                 if (string.IsNullOrEmpty(savedImagePath)) return BadRequest("Meyve fotoğrafı zorunludur!");
 
@@ -72,41 +72,73 @@ namespace ShakyFruits.API.Controllers
                     savedVideoPath = await SaveFileAsync(request.ReferenceVideo, "Videos");
                 }
 
-                // 2. Güvenlik ve Prompt Ayarları
+                // 2. VERİTABANINA KAYIT (Eksik olan kritik parça burasıydı)
+
+                // 1. Meyveyi veritabanına kaydet (Dinamik Title ile)
+                var fruitAsset = new FruitAsset
+                {
+                    ImagePath = savedImagePath,
+                    // Kullanıcı bir başlık girdiyse onu kullan, girmediyse dosya adını (örn: muz.png) kullan
+                    Title = !string.IsNullOrWhiteSpace(request.FruitTitle)
+                            ? request.FruitTitle
+                            : request.FruitImage.FileName,
+
+                    IsMultipleFruits = request.IsMultipleFruits
+                };
+                _context.FruitAssets.Add(fruitAsset);
+
+                // 2. Varsa referans videoyu veritabanına kaydet
+                ReferenceVideo? refVideo = null;
+                if (!string.IsNullOrEmpty(savedVideoPath))
+                {
+                    refVideo = new ReferenceVideo
+                    {
+                        VideoPath = savedVideoPath,
+
+                        // Kullanıcı bir dans stili/başlık girdiyse onu kullan, girmediyse varsayılan bir isim ver
+                        DanceStyle = !string.IsNullOrWhiteSpace(request.DanceStyle)
+                                     ? request.DanceStyle
+                                     : "Özel Yükleme (Bilinmeyen Dans)",
+
+                        // Biz şu an fiziksel dosya yüklediğimiz için kaynak tipi kesinlikle LocalUpload'dur
+                        SourceType = ReferenceSourceType.LocalUpload
+                    };
+                    _context.ReferenceVideos.Add(refVideo);
+                }
+
+                // 3. Değişiklikleri kaydet ki ID'ler (Identity) oluşsun
+                await _context.SaveChangesAsync();
+
+
+                // 3. Güvenlik ve Prompt Ayarları
                 if (string.IsNullOrWhiteSpace(request.TargetModel) || request.TargetModel == "string") request.TargetModel = "VIDEO 2.6";
                 if (string.IsNullOrWhiteSpace(request.TargetResolution) || request.TargetResolution == "string") request.TargetResolution = "720p";
 
                 string appliedPrompt = KlingPrompts.GetFixPrompt(request.IsMultipleFruits);
 
-                // 3. HİBRİT MALİYET HESAPLAMA MİMARİSİ
+                // 4. Maliyet Hesaplama Mimari
                 int calculatedCost = 0;
                 double videoDuration = 0;
 
                 if (request.IsRecreate)
                 {
-                    // DERİN YOL (Playwright): Video bizde değil. Bot URL'ye gider, fotoğrafı yükler ve UI'dan okur.
                     calculatedCost = await _botService.PrepareAndGetCostAsync(
-                        request.IsRecreate,
-                        savedImagePath,
-                        savedVideoPath, // Recreate olduğu için boş gidecek, sorun yok
-                        appliedPrompt,
-                        request.TargetUrl,
-                        request.TargetModel,
-                        request.TargetResolution
-                    );
+                        request.IsRecreate, savedImagePath, savedVideoPath, appliedPrompt, request.TargetUrl, request.TargetModel, request.TargetResolution);
                 }
                 else
                 {
-                    // HIZLI YOL (C# Matematik Motoru): Video bizde. Botu hiç açmadan anında hesapla!
                     videoDuration = KlingCostCalculator.GetVideoDurationInSeconds(savedVideoPath);
                     calculatedCost = KlingCostCalculator.CalculateCost(request.TargetModel, request.TargetResolution, videoDuration);
                 }
 
+                // 5. REACT'E ID'LERİ DÖNDÜR (Artık UI bu ID'leri Confirm'e gönderebilecek)
                 return Ok(new
                 {
                     Message = request.IsRecreate ? "Bot URL'den maliyeti okudu ve onay bekliyor." : "Dosyalar yüklendi ve maliyet anında hesaplandı. Onayınız bekleniyor.",
                     CalculatedCredits = calculatedCost,
-                    VideoDurationSeconds = videoDuration
+                    VideoDurationSeconds = videoDuration,
+                    FruitAssetId = fruitAsset.Id, // <-- YENİ
+                    ReferenceVideoId = refVideo?.Id // <-- YENİ (Nullable)
                 });
             }
             catch (Exception ex)
