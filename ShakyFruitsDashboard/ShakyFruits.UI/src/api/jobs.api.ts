@@ -2,10 +2,10 @@ import { VideoJob } from "@/types/job.types";
 
 // CEYDAK sunucusundaki API adresimiz
 // Not: Port numarasını (.NET API'nin çalıştığı port, örn: 5000, 5001 veya 7100 vb.) kendi yapına göre güncelle.
-const API_BASE_URL = "http://localhost:5290/api";
+const API_BASE_URL = "http://localhost:5290/api/KlingAIBot";
 
 export const fetchJobs = async (): Promise<VideoJob[]> => {
-  const response = await fetch(`${API_BASE_URL}/BotTest/generations`);
+  const response = await fetch(`${API_BASE_URL}/generations`);
 
   if (!response.ok) {
     throw new Error("Failed to fetch jobs from the .NET API");
@@ -14,32 +14,24 @@ export const fetchJobs = async (): Promise<VideoJob[]> => {
   return response.json();
 };
 
-
-// --- YENİ EKLENEN TİPLER ---
+// --- GÜNCELLENEN TİPLER (SESSION MİMARİSİ) ---
 
 export interface PrepareResponse {
   message: string;
   calculatedCredits: number;
   videoDurationSeconds: number;
-  fruitAssetId: number;       // <-- Eklendi
-  referenceVideoId?: number;  // <-- Eklendi (Nullable)
+  sessionId: string; // <-- YENİ: RAM'deki verinin (Cache) anahtarı
 }
 
 export interface ConfirmPayload {
-  fruitAssetId: number;
-  referenceVideoId?: number; // Recreate ise boş olabilir
-  isRecreate: boolean;
-  targetUrl?: string;
-  targetModel: string;
-  targetResolution: string;
-  isMultipleFruits: boolean;
+  sessionId: string; // <-- YENİ: Artık form datalarına gerek yok, sadece bu anahtar yeterli
 }
 
-// --- YENİ EKLENEN FONKSİYONLAR ---
+// --- FONKSİYONLAR ---
 
 // 1. AŞAMA: Dosyaları gönder ve maliyeti hesapla (FormData kullanılır)
 export const prepareJob = async (formData: FormData): Promise<PrepareResponse> => {
-  const response = await fetch(`${API_BASE_URL}/BotTest/prepare`, {
+  const response = await fetch(`${API_BASE_URL}/prepare`, {
     method: "POST",
     // NOT: FormData gönderirken 'Content-Type' başlığını BİZ BELİRLEMİYORUZ. 
     // Tarayıcı otomatik olarak 'multipart/form-data; boundary=...' ekler.
@@ -56,7 +48,7 @@ export const prepareJob = async (formData: FormData): Promise<PrepareResponse> =
 
 // 2. AŞAMA: Onayla ve Kuyruğa At (JSON kullanılır)
 export const confirmJob = async (payload: ConfirmPayload): Promise<{ message: string; jobId: number }> => {
-  const response = await fetch(`${API_BASE_URL}/BotTest/confirm`, {
+  const response = await fetch(`${API_BASE_URL}/confirm`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -70,9 +62,9 @@ export const confirmJob = async (payload: ConfirmPayload): Promise<{ message: st
   return response.json();
 };
 
-// SİLME İŞLEMİ İÇİN YENİ METOT:
+// SİLME İŞLEMİ İÇİN METOT:
 export const deleteJob = async (jobId: number): Promise<void> => {
-  const response = await fetch(`${API_BASE_URL}/BotTest/generations/${jobId}`, {
+  const response = await fetch(`${API_BASE_URL}/generations/${jobId}`, {
     method: 'DELETE',
   });
 

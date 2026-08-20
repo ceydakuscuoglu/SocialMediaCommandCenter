@@ -10,25 +10,29 @@ using ShakyFruits.Core.Services;
 using ShakyFruits.Services;
 using ShakyFruits.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace ShakyFruits.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class BotTestController : ControllerBase
+    public class KlingAIBotController : ControllerBase
     {
         private readonly KlingAiBotService _botService;
         private readonly VideoQueueManager _queueManager; // KUYRUK YÖNETİCİSİ EKLENDİ
         private readonly ApplicationDbContext _context;
+        private readonly IMemoryCache _cache;
 
-        public BotTestController(
+        public KlingAIBotController(
             KlingAiBotService botService,
             VideoQueueManager queueManager,
-            ApplicationDbContext context) // <-- YENİ PARAMETRE
+            ApplicationDbContext context,
+            IMemoryCache cache) // <-- YENİ PARAMETRE
         {
             _botService = botService;
             _queueManager = queueManager;
             _context = context; // <-- ATAMA YAPILIYOR
+            _cache = cache;
         }
 
         private async Task<string> SaveFileAsync(IFormFile file, string folderName)
@@ -61,62 +65,25 @@ namespace ShakyFruits.API.Controllers
         {
             try
             {
-                // 1. Dosyaları sunucuya (diske) kaydet
-                string savedImagePath = await SaveFileAsync(request.FruitImage, "Images");
+                // 1. Dosyaları kalıcı klasöre değil, "Temp" (Geçici) klasörüne kaydet
+                string savedImagePath = await SaveFileAsync(request.FruitImage, "Temp");
                 if (string.IsNullOrEmpty(savedImagePath)) return BadRequest("Meyve fotoğrafı zorunludur!");
 
                 string savedVideoPath = string.Empty;
                 if (!request.IsRecreate)
                 {
                     if (request.ReferenceVideo == null) return BadRequest("Sıfırdan üretim için referans video zorunludur!");
-                    savedVideoPath = await SaveFileAsync(request.ReferenceVideo, "Videos");
+                    savedVideoPath = await SaveFileAsync(request.ReferenceVideo, "Temp");
                 }
 
-                // 2. VERİTABANINA KAYIT (Eksik olan kritik parça burasıydı)
+                // --- VERİTABANI KAYIT İŞLEMİ BURADAN TAMAMEN SİLİNDİ ---
 
-                // 1. Meyveyi veritabanına kaydet (Dinamik Title ile)
-                var fruitAsset = new FruitAsset
-                {
-                    ImagePath = savedImagePath,
-                    // Kullanıcı bir başlık girdiyse onu kullan, girmediyse dosya adını (örn: muz.png) kullan
-                    Title = !string.IsNullOrWhiteSpace(request.FruitTitle)
-                            ? request.FruitTitle
-                            : request.FruitImage.FileName,
-
-                    IsMultipleFruits = request.IsMultipleFruits
-                };
-                _context.FruitAssets.Add(fruitAsset);
-
-                // 2. Varsa referans videoyu veritabanına kaydet
-                ReferenceVideo? refVideo = null;
-                if (!string.IsNullOrEmpty(savedVideoPath))
-                {
-                    refVideo = new ReferenceVideo
-                    {
-                        VideoPath = savedVideoPath,
-
-                        // Kullanıcı bir dans stili/başlık girdiyse onu kullan, girmediyse varsayılan bir isim ver
-                        DanceStyle = !string.IsNullOrWhiteSpace(request.DanceStyle)
-                                     ? request.DanceStyle
-                                     : "Özel Yükleme (Bilinmeyen Dans)",
-
-                        // Biz şu an fiziksel dosya yüklediğimiz için kaynak tipi kesinlikle LocalUpload'dur
-                        SourceType = ReferenceSourceType.LocalUpload
-                    };
-                    _context.ReferenceVideos.Add(refVideo);
-                }
-
-                // 3. Değişiklikleri kaydet ki ID'ler (Identity) oluşsun
-                await _context.SaveChangesAsync();
-
-
-                // 3. Güvenlik ve Prompt Ayarları
                 if (string.IsNullOrWhiteSpace(request.TargetModel) || request.TargetModel == "string") request.TargetModel = "VIDEO 2.6";
                 if (string.IsNullOrWhiteSpace(request.TargetResolution) || request.TargetResolution == "string") request.TargetResolution = "720p";
 
                 string appliedPrompt = KlingPrompts.GetFixPrompt(request.IsMultipleFruits);
 
-                // 4. Maliyet Hesaplama Mimari
+                // 2. Maliyet Hesaplama
                 int calculatedCost = 0;
                 double videoDuration = 0;
 
@@ -131,14 +98,31 @@ namespace ShakyFruits.API.Controllers
                     calculatedCost = KlingCostCalculator.CalculateCost(request.TargetModel, request.TargetResolution, videoDuration);
                 }
 
-                // 5. REACT'E ID'LERİ DÖNDÜR (Artık UI bu ID'leri Confirm'e gönderebilecek)
+                // 3. Verileri RAM'e (Cache) Kaydet
+                var sessionId = Guid.NewGuid().ToString(); // Benzersiz bir bilet oluşturuyoruz
+                var sessionData = new TempPrepareSession
+                {
+                    TempImagePath = savedImagePath,
+                    TempVideoPath = savedVideoPath,
+                    FruitTitle = !string.IsNullOrWhiteSpace(request.FruitTitle) ? request.FruitTitle : request.FruitImage.FileName,
+                    DanceStyle = !string.IsNullOrWhiteSpace(request.DanceStyle) ? request.DanceStyle : "Özel Yükleme",
+                    IsMultipleFruits = request.IsMultipleFruits,
+                    TargetModel = request.TargetModel,
+                    TargetResolution = request.TargetResolution,
+                    TargetUrl = request.TargetUrl,
+                    IsRecreate = request.IsRecreate
+                };
+
+                // Bu bilet 30 dakika boyunca geçerli olacak
+                _cache.Set(sessionId, sessionData, TimeSpan.FromMinutes(30));
+
+                // 4. REACT'e DB ID'leri yerine SessionId döndür
                 return Ok(new
                 {
-                    Message = request.IsRecreate ? "Bot URL'den maliyeti okudu ve onay bekliyor." : "Dosyalar yüklendi ve maliyet anında hesaplandı. Onayınız bekleniyor.",
+                    Message = "Hazırlık tamamlandı. Onay bekleniyor.",
                     CalculatedCredits = calculatedCost,
                     VideoDurationSeconds = videoDuration,
-                    FruitAssetId = fruitAsset.Id, // <-- YENİ
-                    ReferenceVideoId = refVideo?.Id // <-- YENİ (Nullable)
+                    SessionId = sessionId // <-- ARTIK REACT BU ID'Yİ SAKLAYACAK
                 });
             }
             catch (Exception ex)
@@ -153,35 +137,67 @@ namespace ShakyFruits.API.Controllers
         {
             try
             {
-                // 1. Veritabanı modelini oluştur
+                // 1. RAM'den (Cache) bilet numaramıza göre verileri çekiyoruz
+                if (!_cache.TryGetValue(request.SessionId, out TempPrepareSession sessionData))
+                {
+                    return BadRequest("Oturum süresi dolmuş veya geçersiz. Lütfen sayfayı yenileyip tekrar hazırlık yapın.");
+                }
+
+                // 2. VERİTABANINA KAYIT (Prepare'den sildiğimiz işlemi buraya aldık)
+                var fruitAsset = new FruitAsset
+                {
+                    ImagePath = sessionData.TempImagePath,
+                    Title = sessionData.FruitTitle,
+                    IsMultipleFruits = sessionData.IsMultipleFruits
+                };
+                _context.FruitAssets.Add(fruitAsset);
+
+                ReferenceVideo? refVideo = null;
+                if (!string.IsNullOrEmpty(sessionData.TempVideoPath))
+                {
+                    refVideo = new ReferenceVideo
+                    {
+                        VideoPath = sessionData.TempVideoPath,
+                        DanceStyle = sessionData.DanceStyle,
+                        SourceType = ReferenceSourceType.LocalUpload
+                    };
+                    _context.ReferenceVideos.Add(refVideo);
+                }
+
+                // Değişiklikleri kaydet ki Fruit ve Video için gerçek ID'ler oluşsun
+                await _context.SaveChangesAsync();
+
+                // 3. Asıl işi (VideoGeneration) oluştur ve yeni oluşan ID'leri bağla
                 var newGeneration = new VideoGeneration
                 {
-                    FruitAssetId = request.FruitAssetId,
-                    ReferenceVideoId = request.ReferenceVideoId,
-                    IsRecreate = request.IsRecreate,
-                    TargetUrl = request.TargetUrl,
-                    AppliedPrompt = KlingPrompts.GetFixPrompt(request.IsMultipleFruits),
-                    TargetModel = request.TargetModel,
-                    TargetResolution = request.TargetResolution,
+                    FruitAssetId = fruitAsset.Id, // <-- Artık 0 değil, taptaze oluşan ID!
+                    ReferenceVideoId = refVideo?.Id,
+                    IsRecreate = sessionData.IsRecreate,
+                    TargetUrl = sessionData.TargetUrl,
+                    AppliedPrompt = KlingPrompts.GetFixPrompt(sessionData.IsMultipleFruits),
+                    TargetModel = sessionData.TargetModel,
+                    TargetResolution = sessionData.TargetResolution,
                     Status = GenerationStatus.Pending
                 };
 
-                // 2. Veritabanına kaydet (EF Core otomatik olarak bir ID atayacaktır)
                 _context.VideoGenerations.Add(newGeneration);
                 await _context.SaveChangesAsync();
 
-                // 3. Sadece oluşan ID'yi Worker'ın dinlediği kuyruğa gönder
+                // 4. Sadece oluşan işin ID'sini Worker'ın dinlediği kuyruğa gönder
                 await _queueManager.QueueJobAsync(newGeneration.Id);
+
+                // 5. Temizlik: İşlem bittiğine göre RAM'i meşgul etmemesi için Cache'i siliyoruz
+                _cache.Remove(request.SessionId);
 
                 return Ok(new
                 {
-                    Message = "Videonuz sıraya alındı!",
+                    Message = "Videonuz başarıyla sıraya alındı!",
                     JobId = newGeneration.Id
                 });
             }
             catch (Exception ex)
             {
-                return BadRequest($"Hata: {ex.Message}");
+                return BadRequest($"Onaylama sırasında hata oluştu: {ex.Message}");
             }
         }
 

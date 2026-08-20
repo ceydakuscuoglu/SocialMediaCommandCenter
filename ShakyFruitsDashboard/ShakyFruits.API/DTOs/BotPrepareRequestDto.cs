@@ -31,4 +31,17 @@ namespace ShakyFruits.API.DTOs
         // YENİ: Kullanıcı isterse videodaki dansın türünü yazabilecek
         public string? DanceStyle { get; set; }
     }
+
+    public class TempPrepareSession
+    {
+        public string TempImagePath { get; set; }
+        public string? TempVideoPath { get; set; }
+        public string FruitTitle { get; set; }
+        public string DanceStyle { get; set; }
+        public bool IsMultipleFruits { get; set; }
+        public string TargetModel { get; set; }
+        public string TargetResolution { get; set; }
+        public string? TargetUrl { get; set; }
+        public bool IsRecreate { get; set; }
+    }
 }

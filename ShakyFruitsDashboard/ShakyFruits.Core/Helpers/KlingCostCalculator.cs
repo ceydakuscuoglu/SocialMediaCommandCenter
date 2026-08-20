@@ -23,28 +23,28 @@ namespace ShakyFruits.Core.Helpers
         // 2. Kling AI tablolarına birebir uyan matematik motoru
         public static int CalculateCost(string model, string resolution, double durationInSeconds)
         {
-            // Tablo Kuralı 1: Süreyi en yakın tam saniyeye yuvarla
-            // AwayFromZero: 3.4 -> 3 saniye, 3.5 ve 3.6 -> 4 saniye yapar
             int roundedSeconds = (int)Math.Round(durationInSeconds, MidpointRounding.AwayFromZero);
-
-            // Güvenlik: Minimum 1 saniye kabul edelim
             if (roundedSeconds < 1) roundedSeconds = 1;
 
-            // Tablo Kuralı 2 & 3: Çarpanları belirle
-            int multiplier = 5; // Varsayılan en düşük model çarpanı (2.6 / Standard)
+            // Güvenlik Zırhı: Gelen değerleri null ihtimaline karşı koru, boşlukları sil ve küçük harfe çevir
+            string safeModel = (model ?? "").Trim().ToLower();
+            string safeResolution = (resolution ?? "").Trim().ToLower();
 
-            if (model.Contains("3.0"))
+            int multiplier = 5; // Varsayılan en düşük model çarpanı (2.6 / 720p)
+
+            // Artık sadece "3.0" ve "1080" kelimelerini arıyoruz.
+            // Artık sadece "3" rakamını arıyoruz, ".0" kısmına takılmıyoruz.
+            if (safeModel.Contains("3"))
             {
-                // Professional (1080p) = 12, Standard (720p) = 9
-                multiplier = resolution.Contains("1080p") ? 12 : 9;
+                // 1080 kelimesi geçiyorsa 12, geçmiyorsa 9
+                multiplier = safeResolution.Contains("1080") ? 12 : 9;
             }
-            else if (model.Contains("2.6"))
+            else if (safeModel.Contains("2.6"))
             {
-                // Professional (1080p) = 8, Standard (720p) = 5
-                multiplier = resolution.Contains("1080p") ? 8 : 5;
+                // 1080 kelimesi geçiyorsa 8, geçmiyorsa 5
+                multiplier = safeResolution.Contains("1080") ? 8 : 5;
             }
 
-            // Toplam maliyet
             return roundedSeconds * multiplier;
         }
     }

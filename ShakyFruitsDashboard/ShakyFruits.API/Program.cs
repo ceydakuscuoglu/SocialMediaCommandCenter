@@ -5,6 +5,7 @@ using ShakyFruits.Data;
 using ShakyFruits.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddMemoryCache();
 
 // Ön yüz (Tauri/Vite) için CORS politikasını tanımlıyoruz
 builder.Services.AddCors(options =>

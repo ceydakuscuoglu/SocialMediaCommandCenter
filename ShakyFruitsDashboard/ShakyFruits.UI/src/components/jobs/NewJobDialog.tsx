@@ -29,21 +29,23 @@ export function NewJobDialog() {
   const [step, setStep] = useState<1 | 2>(1);
   const [costData, setCostData] = useState<PrepareResponse | null>(null);
 
-  // Form Verileri
+  // Form Verileri (Hazırlık aşaması için hala gerekliler)
   const [isRecreate, setIsRecreate] = useState("false");
   const [isMultipleFruits, setIsMultipleFruits] = useState("false");
   const [targetUrl, setTargetUrl] = useState("");
   const [fruitImage, setFruitImage] = useState<File | null>(null);
   const [referenceVideo, setReferenceVideo] = useState<File | null>(null);
-  
-  // YENİ EKLENEN METİN ALANLARI
+
   const [fruitTitle, setFruitTitle] = useState("");
   const [danceStyle, setDanceStyle] = useState("");
+
+  const [targetModel, setTargetModel] = useState("VIDEO 2.6");
+  const [targetResolution, setTargetResolution] = useState("720p");
 
   const prepareMutation = useMutation({
     mutationFn: prepareJob,
     onSuccess: (data) => {
-      setCostData(data);
+      setCostData(data); // data artık sessionId içeriyor
       setStep(2);
     },
     onError: (err) => {
@@ -70,8 +72,10 @@ export function NewJobDialog() {
     setTargetUrl("");
     setFruitImage(null);
     setReferenceVideo(null);
-    setFruitTitle(""); // Sıfırla
-    setDanceStyle(""); // Sıfırla
+    setFruitTitle(""); 
+    setDanceStyle(""); 
+    setTargetModel("VIDEO 2.6"); 
+    setTargetResolution("720p"); 
     setOpen(false);
   };
 
@@ -81,42 +85,40 @@ export function NewJobDialog() {
     if (isRecreate === "false" && !referenceVideo) return alert("Reference Video is required for new jobs!");
     if (isRecreate === "true" && !targetUrl) return alert("Target URL is required for recreate jobs!");
 
+    // Backend'in Cache'ine (Session) yazması için tüm verileri ilk aşamada gönderiyoruz
     const formData = new FormData();
     formData.append("FruitImage", fruitImage);
     formData.append("IsRecreate", isRecreate);
     formData.append("IsMultipleFruits", isMultipleFruits);
-    
-    // YENİ ALANLARI C#'A GÖNDERİYORUZ
+    formData.append("TargetModel", targetModel);
+    formData.append("TargetResolution", targetResolution);
+
     if (fruitTitle) formData.append("FruitTitle", fruitTitle);
     if (danceStyle) formData.append("DanceStyle", danceStyle);
-    
+
     if (isRecreate === "true") {
       formData.append("TargetUrl", targetUrl);
     } else {
       formData.append("ReferenceVideo", referenceVideo!);
     }
 
-    formData.append("TargetModel", "VIDEO 2.6");
-    formData.append("TargetResolution", "720p");
-
     prepareMutation.mutate(formData);
   };
 
+  // --- GÜNCELLENEN KISIM: Sadece SessionId gönderiliyor ---
   const handleConfirm = () => {
-    if (!costData) return;
+    if (!costData || !costData.sessionId) {
+      alert("Session bilgisi bulunamadı. Lütfen işlemi baştan başlatın.");
+      return;
+    }
 
     const payload: ConfirmPayload = {
-      fruitAssetId: costData.fruitAssetId,
-      referenceVideoId: costData.referenceVideoId,
-      isRecreate: isRecreate === "true",
-      targetUrl: targetUrl,
-      targetModel: "VIDEO 2.6",
-      targetResolution: "720p",
-      isMultipleFruits: isMultipleFruits === "true"
+      sessionId: costData.sessionId // Tüm form verileri backend RAM'inde olduğu için sadece anahtarı yolluyoruz
     };
 
     confirmMutation.mutate(payload);
   };
+  // ---------------------------------------------------------
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
@@ -129,7 +131,7 @@ export function NewJobDialog() {
           New Generation Job
         </Button>
       </DialogTrigger>
-      
+
       <DialogContent className="sm:max-w-[500px]">
         {step === 1 ? (
           <form onSubmit={handlePrepare}>
@@ -142,7 +144,7 @@ export function NewJobDialog() {
                 Upload source files and define the character concepts.
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto px-1">
               <div className="grid gap-2">
                 <Label>Job Type</Label>
@@ -157,12 +159,11 @@ export function NewJobDialog() {
                 </Select>
               </div>
 
-              {/* KARAKTER İSMİ */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label>Character Name</Label>
-                  <Input 
-                    placeholder="e.g. Strawberry" 
+                  <Input
+                    placeholder="e.g. Strawberry"
                     value={fruitTitle}
                     onChange={(e) => setFruitTitle(e.target.value)}
                   />
@@ -181,22 +182,49 @@ export function NewJobDialog() {
                 </div>
               </div>
 
-              {/* DANS STİLİ */}
               {isRecreate === "false" && (
                 <div className="grid gap-2 animate-in fade-in zoom-in duration-300">
                   <Label>Trend / Concept</Label>
-                  <Input 
-                    placeholder="e.g. Hip-Hop Bounce" 
+                  <Input
+                    placeholder="e.g. Hip-Hop Bounce"
                     value={danceStyle}
                     onChange={(e) => setDanceStyle(e.target.value)}
                   />
                 </div>
               )}
 
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Target Model</Label>
+                  <Select value={targetModel} onValueChange={setTargetModel}>
+                    <SelectTrigger className="bg-muted/50 border-0">
+                      <SelectValue placeholder="Select model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="VIDEO 2.6">VIDEO 2.6</SelectItem>
+                      <SelectItem value="VIDEO 3.0">VIDEO 3.0</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Resolution</Label>
+                  <Select value={targetResolution} onValueChange={setTargetResolution}>
+                    <SelectTrigger className="bg-muted/50 border-0">
+                      <SelectValue placeholder="Select resolution" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="720p">720p</SelectItem>
+                      <SelectItem value="1080p">1080p</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               <div className="grid gap-2 mt-2 border-t border-border/50 pt-4">
                 <Label>Fruit Image (Required)</Label>
-                <Input 
-                  type="file" 
+                <Input
+                  type="file"
                   accept="image/*"
                   onChange={(e) => setFruitImage(e.target.files?.[0] || null)}
                 />
@@ -205,8 +233,8 @@ export function NewJobDialog() {
               {isRecreate === "false" ? (
                 <div className="grid gap-2 animate-in fade-in zoom-in duration-300">
                   <Label>Reference Video (Required)</Label>
-                  <Input 
-                    type="file" 
+                  <Input
+                    type="file"
                     accept="video/*"
                     onChange={(e) => setReferenceVideo(e.target.files?.[0] || null)}
                   />
@@ -214,15 +242,15 @@ export function NewJobDialog() {
               ) : (
                 <div className="grid gap-2 animate-in fade-in zoom-in duration-300">
                   <Label>Target Bot URL</Label>
-                  <Input 
-                    placeholder="https://..." 
+                  <Input
+                    placeholder="https://..."
                     value={targetUrl}
                     onChange={(e) => setTargetUrl(e.target.value)}
                   />
                 </div>
               )}
             </div>
-            
+
             <DialogFooter>
               <Button type="submit" className="w-full gap-2" disabled={prepareMutation.isPending}>
                 {prepareMutation.isPending ? (
