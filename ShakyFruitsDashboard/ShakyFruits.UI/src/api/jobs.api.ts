@@ -27,6 +27,13 @@ export interface ConfirmPayload {
   sessionId: string; // <-- YENİ: Artık form datalarına gerek yok, sadece bu anahtar yeterli
 }
 
+export interface KlingCreditData {
+  remainingCredits: number;
+  membershipCredits: number;
+  topUpCredits: number;
+  bonusCredits: number;
+}
+
 // --- FONKSİYONLAR ---
 
 // 1. AŞAMA: Dosyaları gönder ve maliyeti hesapla (FormData kullanılır)
@@ -73,4 +80,15 @@ export const deleteJob = async (jobId: number): Promise<void> => {
     const errorData = await response.json().catch(() => null);
     throw new Error(errorData?.message || "Kayıt silinirken bir hata oluştu.");
   }
+};
+
+export const fetchCredits = async (): Promise<KlingCreditData> => {
+  // API_BASE_URL zaten 'http://localhost:5290/api/KlingAIBot' olarak ayarlıydı
+  const response = await fetch(`${API_BASE_URL}/credits`);
+
+  if (!response.ok) {
+    throw new Error("Kredi bilgisi alınırken bir hata oluştu.");
+  }
+
+  return response.json();
 };

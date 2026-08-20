@@ -5,11 +5,20 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
+import { fetchCredits } from "@/api/jobs.api";
+import { KlingCreditCard } from "@/components/dashboard/KlingCreditCard";
+import { useQuery } from "@tanstack/react-query";
 import { Clapperboard } from "lucide-react";
 import { JobsTable } from "@/components/jobs/JobsTable";
-import { NewJobDialog } from "@/components/jobs/NewJobDialog"; // Yeni formumuzu import ettik
+import { NewJobDialog } from "@/components/jobs/NewJobDialog";
 
 function App() {
+  // 1. Kredi verisini çeken React Query kancamızı ana App bileşenine taşıdık
+  const { data: creditData, isLoading } = useQuery({
+    queryKey: ["kling-credits"],
+    queryFn: fetchCredits
+  });
+
   return (
     <div className="min-h-screen bg-background p-8 text-foreground font-sans">
       
@@ -21,7 +30,6 @@ function App() {
             <span>ShakyFruits Command Center</span>
           </h1>
           
-          {/* Akıllı Modal Formumuz Buraya Geldi */}
           <NewJobDialog />
         </div>
         
@@ -30,7 +38,13 @@ function App() {
         </p>
       </div>
 
-      {/* Main Content */}
+      {/* YENİ EKLENEN: İstatistik Kartları Alanı (Tablonun hemen üstü) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <KlingCreditCard data={creditData} isLoading={isLoading} />
+        {/* İleride buraya başka istatistik kartları da ekleyebilirsin */}
+      </div>
+
+      {/* Main Content (Tablo) */}
       <Card className="shadow-sm border-border/40">
         <CardHeader className="bg-muted/20 border-b border-border/40 pb-4">
           <CardTitle className="text-xl">Production Pipeline</CardTitle>
@@ -45,4 +59,5 @@ function App() {
   );
 }
 
+// 2. Fazlalık Dashboard fonksiyonunu tamamen sildik. Sadece App'i dışarı aktarıyoruz.
 export default App;
