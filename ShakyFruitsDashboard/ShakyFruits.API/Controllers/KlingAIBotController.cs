@@ -265,5 +265,20 @@ namespace ShakyFruits.API.Controllers
                 return BadRequest($"Silme işlemi sırasında hata oluştu: {ex.Message}");
             }
         }
+
+        [HttpGet("credits")]
+        public async Task<IActionResult> GetCredits()
+        {
+            try
+            {
+                // _botService artık KlingCreditsModel dönüyor, bu da doğrudan ön yüze gidiyor
+                var credits = await _botService.GetCreditsAsync();
+                return Ok(credits);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Krediler çekilirken bir hata oluştu.", Error = ex.Message });
+            }
+        }
     }
 }

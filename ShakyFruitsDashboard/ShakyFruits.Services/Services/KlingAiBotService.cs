@@ -1,4 +1,5 @@
 ﻿using Microsoft.Playwright;
+using ShakyFruits.Core.Models;
 
 namespace ShakyFruits.Services
 {
@@ -152,6 +153,106 @@ namespace ShakyFruits.Services
             Console.WriteLine("🧹 Sekme temizleniyor ve kapatılıyor...");
             await _page.CloseAsync();
             _page = null;
+        }
+
+        public async Task<KlingCreditsModel> GetCreditsAsync()
+        {
+            // Kalıcı oturum yolun (Kendi projene göre ayarlayabilirsin)
+            string userDataDir = Path.Combine(Directory.GetCurrentDirectory(), "BrowserData");
+
+            using var playwright = await Playwright.CreateAsync();
+
+            await using var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
+            {
+                Headless = false // Arka planda gizlice çalışır
+            });
+
+            var page = await browserContext.NewPageAsync();
+
+            try
+            {
+                // 1. Sayfaya git
+                await page.GotoAsync("https://kling.ai/app/user-profile/published/all", new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
+
+                // --- YENİ EKLENEN KISIM: Araya Giren Reklam/Abonelik Penceresini Kapatma ---
+                try
+                {
+                    // 1. Botu uyar: "Bu başlığın ekranda görünmesini en fazla 3 saniye (3000ms) bekle"
+                    var popupTitle = page.Locator("text='Subscribe to unlock exclusive features'");
+
+                    // Eğer 3 saniye içinde çıkmazsa hata fırlatıp catch bloğuna düşer (yani yola devam eder)
+                    await popupTitle.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 5000 });
+
+                    // 2. Eğer buraya geçebildiyse pencere ekrana çıkmış demektir! 
+                    // Element UI pencerelerini kapatmanın en temiz yolu dışındaki gri alana tıklamaktır (Sol üst köşeye X:10, Y:10 koordinatına tıklıyoruz)
+                    await page.Mouse.ClickAsync(10, 10);
+                    await Task.Delay(500); // Animasyonun kapanmasını yarım saniye bekle
+
+                    // 3. İnat edip kapanmadıysa ESC tuşuyla vur
+                    if (await popupTitle.IsVisibleAsync())
+                    {
+                        await page.Keyboard.PressAsync("Escape");
+                        await Task.Delay(500);
+                    }
+                }
+                catch
+                {
+                    // 3 saniye bekledik, pencere çıkmadıysa sorun yok demektir, asıl işimize geçebiliriz.
+                }
+
+                // 2. "Credits" butonunu bul ve tıkla
+                var creditsButton = page.Locator(".click-item").Filter(new LocatorFilterOptions { HasText = "Credits" }).First;
+                await creditsButton.ClickAsync();
+
+                // 3. Tıkladıktan sonra açılan kredi özet penceresinin (.summary) görünür olmasını bekle
+                var summaryContainer = page.Locator(".summary");
+                await summaryContainer.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
+                await Task.Delay(2000);
+                // 4. Verileri başlıklarına (h4) göre eşleştirip, içindeki <p> (rakam) etiketinden oku
+                string remainingText = await summaryContainer.Locator(".item")
+                    .Filter(new LocatorFilterOptions { HasText = "Remaining Credits" }).Locator("p").InnerTextAsync();
+
+                string membershipText = await summaryContainer.Locator(".item")
+                    .Filter(new LocatorFilterOptions { HasText = "Membership Credits" }).Locator("p").InnerTextAsync();
+
+                string topupText = await summaryContainer.Locator(".item")
+                    .Filter(new LocatorFilterOptions { HasText = "Top-up Credits" }).Locator("p").InnerTextAsync();
+
+                string bonusText = await summaryContainer.Locator(".item")
+                    .Filter(new LocatorFilterOptions { HasText = "Bonus Credits" }).Locator("p").InnerTextAsync();
+
+                // ParseCredit metodu ile temizleyip modele çevir ve gönder
+                return new KlingCreditsModel
+                {
+                    RemainingCredits = ParseCredit(remainingText),
+                    MembershipCredits = ParseCredit(membershipText),
+                    TopUpCredits = ParseCredit(topupText),
+                    BonusCredits = ParseCredit(bonusText)
+                };
+            }
+            finally
+            {
+                // İşlem bitince sekmeyi kapat
+                await page.CloseAsync();
+            }
+        }
+
+        // Ufak bir yardımcı metot: Gelen metindeki gereksiz harfleri/boşlukları temizleyip rakama çevirir
+        private double ParseCredit(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return 0;
+
+            // Rakam ve nokta dışındaki her şeyi temizle (örn: "Credits: 214.55" -> "214.55")
+            string cleanText = new string(text.Where(c => char.IsDigit(c) || c == '.' || c == ',').ToArray());
+
+            // Türkçe/İngilizce nokta virgül karmaşasını çözer
+            cleanText = cleanText.Replace(",", ".");
+
+            if (double.TryParse(cleanText, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double result))
+            {
+                return result;
+            }
+            return 0;
         }
     }
 }
