@@ -34,7 +34,7 @@ import { Command } from '@tauri-apps/plugin-shell';
 export function JobsTable() {
   const { data: jobs, isLoading, isError, error } = useJobs();
 
-const handleOpenFolder = async (path: string | null) => {
+  const handleOpenFolder = async (path: string | null) => {
     if (!path) return;
     try {
       // 1. Tırnak işaretlerini temizle
@@ -42,16 +42,16 @@ const handleOpenFolder = async (path: string | null) => {
 
       // 2. Videonun bulunduğu klasörün yolunu ayır
       const folderPath = cleanPath.substring(0, Math.max(cleanPath.lastIndexOf('\\'), cleanPath.lastIndexOf('/'))) || cleanPath;
-      
+
       // 3. Windows'un en sevdiği format olan ters slash (\) ile yolu sabitle
       const safePath = folderPath.replace(/\//g, '\\');
-      
+
       console.log("Shell Command'e Giden Yol:", safePath);
 
       // 4. Tauri Shell Command ile explorer.exe'yi doğrudan çalıştır
       const command = Command.create('run-explorer', [safePath]);
       await command.spawn();
-      
+
     } catch (err) {
       console.error("Shell Command Hatası:", err);
       alert(`Tauri Hatası:\n${err}`);
@@ -154,7 +154,7 @@ const handleOpenFolder = async (path: string | null) => {
             </TableCell>
 
             <TableCell>
-              <JobStatusBadge status={job.status} />
+              <JobStatusBadge status={job.status} errorMessage={job.errorMessage} />
             </TableCell>
 
             <TableCell className="text-right text-muted-foreground whitespace-nowrap text-sm">
