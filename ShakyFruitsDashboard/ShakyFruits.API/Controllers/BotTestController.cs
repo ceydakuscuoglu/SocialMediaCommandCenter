@@ -217,5 +217,37 @@ namespace ShakyFruits.API.Controllers
                 return BadRequest($"Listeleme sırasında hata oluştu: {ex.Message}");
             }
         }
+
+        [HttpDelete("generations/{id}")]
+        public async Task<IActionResult> DeleteGeneration(int id)
+        {
+            try
+            {
+                // 1. Veritabanında ilgili işi bul
+                var generation = await _context.VideoGenerations.FindAsync(id);
+
+                if (generation == null)
+                {
+                    return NotFound(new { Message = "Silinmek istenen kayıt bulunamadı." });
+                }
+
+                // 2. Fiziksel Dosya Temizliği (Opsiyonel ama önerilir)
+                // Eğer bu iş tamamlanmışsa ve diskte bir çıktı videosu varsa, onu da temizleyelim
+                if (!string.IsNullOrEmpty(generation.OutputVideoPath) && System.IO.File.Exists(generation.OutputVideoPath))
+                {
+                    System.IO.File.Delete(generation.OutputVideoPath);
+                }
+
+                // 3. Veritabanından kaydı sil
+                _context.VideoGenerations.Remove(generation);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { Message = "İşlem başarıyla silindi." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Silme işlemi sırasında hata oluştu: {ex.Message}");
+            }
+        }
     }
 }

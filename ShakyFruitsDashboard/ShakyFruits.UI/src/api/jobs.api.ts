@@ -6,11 +6,11 @@ const API_BASE_URL = "http://localhost:5290/api";
 
 export const fetchJobs = async (): Promise<VideoJob[]> => {
   const response = await fetch(`${API_BASE_URL}/BotTest/generations`);
-  
+
   if (!response.ok) {
     throw new Error("Failed to fetch jobs from the .NET API");
   }
-  
+
   return response.json();
 };
 
@@ -26,7 +26,7 @@ export interface PrepareResponse {
 }
 
 export interface ConfirmPayload {
-  fruitAssetId: number; 
+  fruitAssetId: number;
   referenceVideoId?: number; // Recreate ise boş olabilir
   isRecreate: boolean;
   targetUrl?: string;
@@ -68,4 +68,17 @@ export const confirmJob = async (payload: ConfirmPayload): Promise<{ message: st
   }
 
   return response.json();
+};
+
+// SİLME İŞLEMİ İÇİN YENİ METOT:
+export const deleteJob = async (jobId: number): Promise<void> => {
+  const response = await fetch(`${API_BASE_URL}/BotTest/generations/${jobId}`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    // Backend'den dönen hata mesajını yakalamaya çalışalım
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.message || "Kayıt silinirken bir hata oluştu.");
+  }
 };

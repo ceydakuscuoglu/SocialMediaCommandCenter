@@ -16,6 +16,17 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   FileImage,
   FileVideo,
   Loader2,
@@ -24,12 +35,14 @@ import {
   Sparkles,
   Calendar,
   FolderOpen,
-  TextQuote
+  TextQuote,
+  Trash2
 } from "lucide-react";
 import { getFileName, formatDate } from "@/utils/formatters";
 import { JobStatusBadge } from "./JobStatusBadge";
 import { useJobs } from "@/hooks/useJobs";
 import { Command } from '@tauri-apps/plugin-shell';
+import { deleteJob } from "@/api/jobs.api";
 
 export function JobsTable() {
   const { data: jobs, isLoading, isError, error } = useJobs();
@@ -57,6 +70,22 @@ export function JobsTable() {
       alert(`Tauri Hatası:\n${err}`);
     }
   }
+
+  const handleDelete = async (jobId: number) => {
+    try {
+      // 1. Tüm işi merkezi API dosyamıza devrettik
+      await deleteJob(jobId);
+
+      // 2. Silme başarılıysa tabloyu yenile
+      // (React Query kullanıyorsan burayı queryClient.invalidateQueries(...) yapabilirsin)
+      window.location.reload();
+
+    } catch (err) {
+      console.error("Silme Hatası:", err);
+      // Backend'den fırlattığımız temiz hatayı ekrana basıyoruz
+      alert(`Hata:\n${err instanceof Error ? err.message : err}`);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -165,18 +194,53 @@ export function JobsTable() {
             </TableCell>
 
             <TableCell className="pr-6 text-right">
-              {/* String tip güvenliği sağlandı */}
-              {(String(job.status).toLowerCase() === "completed" || String(job.status) === "2") && job.outputVideoPath && (
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="h-8 w-8 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
-                  title="Open Output Video"
-                  onClick={() => handleOpenFolder(job.outputVideoPath)}
-                >
-                  <FolderOpen className="w-4 h-4" />
-                </Button>
-              )}
+              <div className="flex items-center justify-end gap-2">
+
+                {/* 1. KLASÖR AÇMA BUTONU (Eski kodumuz, aynen kalıyor) */}
+                {(String(job.status).toLowerCase() === "completed" || String(job.status) === "2") && job.outputVideoPath && (
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="h-8 w-8 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
+                    title="Open Output Video"
+                    onClick={() => handleOpenFolder(job.outputVideoPath)}
+                  >
+                    <FolderOpen className="w-4 h-4" />
+                  </Button>
+                )}
+
+                {/* 2. YENİ: SİLME BUTONU VE ONAY PENCERESİ */}
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      title="Delete Job"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete Job #{job.id} from the database and remove associated assets.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleDelete(job.id)}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
+              </div>
             </TableCell>
 
           </TableRow>
