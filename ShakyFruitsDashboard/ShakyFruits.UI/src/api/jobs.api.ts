@@ -1,5 +1,21 @@
-import { VideoJob } from "@/types/job.types";
+export enum GenerationStatus {
+  Pending = 0,
+  Processing = 1,
+  Completed = 2,
+  Failed = 3
+}
 
+export interface VideoJob {
+  id: number;
+  fruitImagePath: string;
+  referenceVideoPath: string;
+  isRecreate: boolean;
+  appliedPrompt: string;
+  status: GenerationStatus; // Artık string değil, bu numaralı enum tipinde
+  errorMessage: string | null;
+  outputVideoPath: string | null;
+  createdAt: string; // C# DateTime'ı JSON'da ISO string olarak gelir
+}
 // CEYDAK sunucusundaki API adresimiz
 // Not: Port numarasını (.NET API'nin çalıştığı port, örn: 5000, 5001 veya 7100 vb.) kendi yapına göre güncelle.
 const API_BASE_URL = "http://localhost:5290/api/KlingAIBot";
