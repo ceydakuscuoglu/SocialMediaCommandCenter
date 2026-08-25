@@ -20,6 +20,8 @@ namespace ShakyFruits.Data
         public DbSet<ReferenceVideo> ReferenceVideos { get; set; }
         public DbSet<VideoGeneration> VideoGenerations { get; set; }
         public DbSet<DailyTrend> DailyTrends { get; set; }
+        public DbSet<PublishedVideo> PublishedVideos { get; set; }
+        public DbSet<VideoAnalytics> VideoAnalytics { get; set; }
 
         // 3. Fluent API (Kurallar ve İlişkiler): EF Core'un otomatik yapamadığı özel veritabanı ayarlarını burada belirtiriz.
         protected override void OnModelCreating(ModelBuilder modelBuilder)

@@ -17,4 +17,11 @@ namespace ShakyFruits.Core.Enums
         TikTok = 1,
         Instagram = 2
     }
+
+    public enum SocialPlatform
+    {
+        TikTok = 1,
+        Instagram = 2,
+        YouTube = 3
+    }
 }
