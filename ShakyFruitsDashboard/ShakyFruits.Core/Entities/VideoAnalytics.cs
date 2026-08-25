@@ -12,7 +12,9 @@ namespace ShakyFruits.Core.Entities
         public int Comments { get; set; }
         public int Shares { get; set; }
 
-        // Verinin bottan okunup veritabanına yazıldığı an (Snapshot zamanı)
+        // YENİ EKLENEN SÜTUN
+        public int Favorites { get; set; }
+
         public DateTime RecordedAt { get; set; }
     }
 }
