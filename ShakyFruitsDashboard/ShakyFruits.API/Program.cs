@@ -6,6 +6,8 @@ using ShakyFruits.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddMemoryCache();
+// Diğer servis kayıtlarının olduğu yere ekle
+builder.Services.AddHostedService<AnalyticsScraperWorker>();
 
 // Ön yüz (Tauri/Vite) için CORS politikasını tanımlıyoruz
 builder.Services.AddCors(options =>
