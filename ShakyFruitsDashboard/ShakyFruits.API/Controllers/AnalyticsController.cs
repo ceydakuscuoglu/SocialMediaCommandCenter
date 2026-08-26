@@ -181,5 +181,34 @@ namespace ShakyFruits.API.Controllers
                 return StatusCode(500, new { Message = "Video kaydedilirken veritabanı hatası oluştu.", Error = ex.Message });
             }
         }
+
+        // 3. GET: UI için Hesap Geneli Tarihsel Verileri Getir
+        [HttpGet("account-history")]
+        public async Task<IActionResult> GetAccountHistory()
+        {
+            try
+            {
+                // React'in grafikleri çizebilmesi için eskiden yeniye doğru sıralı gönderiyoruz
+                var history = await _context.AccountAnalyticsHistory
+                    .OrderBy(a => a.RecordedAt)
+                    .Select(a => new
+                    {
+                        totalVideoViews = a.TotalVideoViews,
+                        profileViews = a.ProfileViews,
+                        totalLikes = a.TotalLikes,
+                        totalComments = a.TotalComments,
+                        totalShares = a.TotalShares,
+                        estimatedRewards = a.EstimatedRewards,
+                        recordedAt = a.RecordedAt
+                    })
+                    .ToListAsync();
+
+                return Ok(history);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Hesap geneli veriler getirilirken hata oluştu.", Error = ex.Message });
+            }
+        }
     }
 }

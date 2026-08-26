@@ -89,6 +89,64 @@ namespace ShakyFruits.Services
             }
         }
 
+        public async Task<AccountAnalyticsHistory> ScrapeAccountAnalyticsAsync()
+        {
+            string userDataDir = Path.Combine(Directory.GetCurrentDirectory(), "BrowserData");
+
+            using var playwright = await Playwright.CreateAsync();
+            await using var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
+            {
+                Headless = true, // Artık oturumumuz var, arka planda gizlice çalışabilir
+                Channel = "chrome",
+                Args = new[] { "--disable-blink-features=AutomationControlled" }
+            });
+
+            var page = await browserContext.NewPageAsync();
+
+            try
+            {
+                // TikTok Studio Analizler ana sayfasına git
+                await page.GotoAsync("https://www.tiktok.com/tiktokstudio/analytics", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded, Timeout = 60000 });
+
+                // Grafiğin ve verilerin ekrana tam oturması için kısa bir bekleme
+                await Task.Delay(4000);
+
+                // HTML'deki o harika 'absolute-value' sınıfını hedef alıyoruz
+                var metricSpans = page.Locator(".absolute-value");
+
+                // İlk elementin görünür olmasını bekle (Strict Mode'a takılmamak için)
+                await metricSpans.First.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 15000 });
+
+                // HTML'deki sıraya göre (0'dan 5'e kadar) verileri çekiyoruz
+                string totalViewsText = await metricSpans.Nth(0).InnerTextAsync();
+                string profileViewsText = await metricSpans.Nth(1).InnerTextAsync();
+                string likesText = await metricSpans.Nth(2).InnerTextAsync();
+                string commentsText = await metricSpans.Nth(3).InnerTextAsync();
+                string sharesText = await metricSpans.Nth(4).InnerTextAsync();
+                string rewardsText = await metricSpans.Nth(5).InnerTextAsync();
+
+                return new AccountAnalyticsHistory
+                {
+                    TotalVideoViews = ParseSocialNumber(totalViewsText),
+                    ProfileViews = ParseSocialNumber(profileViewsText),
+                    TotalLikes = ParseSocialNumber(likesText),
+                    TotalComments = ParseSocialNumber(commentsText),
+                    TotalShares = ParseSocialNumber(sharesText),
+                    EstimatedRewards = decimal.TryParse(rewardsText.Replace("$", "").Trim(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal reward) ? reward : 0,
+                    RecordedAt = DateTime.UtcNow
+                };
+            }
+            catch (Exception ex)
+            {
+                await page.ScreenshotAsync(new PageScreenshotOptions { Path = "account_analytics_hata.png" });
+                throw new Exception("Hesap geneli analiz kazıması başarısız. İç hata: " + ex.Message);
+            }
+            finally
+            {
+                await page.CloseAsync();
+            }
+        }
+
         // --- GÜNCELLENEN AKILLI ÇEVİRİCİ ---
         private int ParseSocialNumber(string text)
         {
@@ -115,6 +173,8 @@ namespace ShakyFruits.Services
             {
                 return (int)Math.Round(parsedValue * multiplier);
             }
+            // $ veya € gibi para birimlerini temizle
+            text = text.Replace("$", "").Replace("€", "").Replace("£", "");
 
             return 0;
         }
