@@ -1,8 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ShakyFruits.Data;
-using ShakyFruits.Services; // Senin servis namespace'ine göre ayarla
 using ShakyFruits.Data; // DbContext'in olduğu namespace'i eklemeyi unutma
+using ShakyFruits.Services; // Senin servis namespace'ine göre ayarla
+using ShakyFruits.API.DTOs;
+using ShakyFruits.Core.Entities;
 
 namespace ShakyFruits.API.Controllers
 {
@@ -95,6 +96,89 @@ namespace ShakyFruits.API.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { Message = "İstatistikler çekilirken hata oluştu.", Error = ex.Message });
+            }
+        }
+        // 1. GET: Grafikler ve Tablo için Yayınlanmış Videoları Getir
+        [HttpGet("published-videos")]
+        public async Task<IActionResult> GetPublishedVideos()
+        {
+            try
+            {
+                // Select ile veriyi şekillendiriyoruz. 
+                // Bu sayede hem tam UI'ın istediği JSON çıkıyor hem de EF Core döngüsel referans hatası vermiyor.
+                var videos = await _context.PublishedVideos
+                    .OrderByDescending(p => p.PublishedAt) // En son eklenen video en üstte gelsin
+                    .Select(p => new
+                    {
+                        id = p.Id,
+                        videoGenerationId = p.VideoGenerationId,
+                        platform = (int)p.Platform,
+                        postUrl = p.PostUrl,
+                        publishedAt = p.PublishedAt,
+                        // UI tarafındaki Recharts için verileri eski tarihten yeniye (.OrderBy) sıralıyoruz
+                        analyticsHistory = p.AnalyticsHistory
+                            .OrderBy(a => a.RecordedAt)
+                            .Select(a => new
+                            {
+                                views = a.Views,
+                                likes = a.Likes,
+                                comments = a.Comments,
+                                shares = a.Shares,
+                                favorites = a.Favorites,
+                                recordedAt = a.RecordedAt
+                            }).ToList()
+                    })
+                    .ToListAsync();
+
+                return Ok(videos);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Yayınlanan videolar getirilirken hata oluştu.", Error = ex.Message });
+            }
+        }
+
+        // 2. POST: Yeni Video Ekleyip Takibe Alma (Modal'dan gelecek istek)
+        [HttpPost("publish-video")]
+        public async Task<IActionResult> PublishVideo([FromBody] PublishVideoRequest request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.PostUrl))
+                return BadRequest("Geçersiz veri gönderildi. Lütfen bir TikTok Studio URL'si girin.");
+
+            try
+            {
+                // Güvenlik kontrolü: Kling ile üretilmiş böyle bir video gerçekten var mı?
+                var videoExists = await _context.VideoGenerations.AnyAsync(v => v.Id == request.VideoGenerationId);
+                if (!videoExists)
+                    return NotFound($"Sistemde {request.VideoGenerationId} ID'li bir üretim (Generation) kaydı bulunamadı.");
+
+                var newPublishedVideo = new PublishedVideo
+                {
+                    VideoGenerationId = request.VideoGenerationId,
+                    Platform = ShakyFruits.Core.Enums.SocialPlatform.TikTok, // Varsayılan olarak TikTok atandı
+                    PostUrl = request.PostUrl,
+                    PublishedAt = DateTime.UtcNow
+                };
+
+                _context.PublishedVideos.Add(newPublishedVideo);
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    Message = "Video takip listesine başarıyla eklendi. Playwright botumuz sıradaki turda verileri kazıyacaktır.",
+                    Data = new
+                    {
+                        newPublishedVideo.Id,
+                        newPublishedVideo.VideoGenerationId,
+                        Platform = (int)newPublishedVideo.Platform,
+                        newPublishedVideo.PostUrl,
+                        newPublishedVideo.PublishedAt
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Video kaydedilirken veritabanı hatası oluştu.", Error = ex.Message });
             }
         }
     }

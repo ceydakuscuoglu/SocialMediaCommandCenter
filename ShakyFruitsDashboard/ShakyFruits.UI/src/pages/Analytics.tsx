@@ -1,24 +1,34 @@
 import { useQuery } from "@tanstack/react-query";
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle 
+import { VideoPerformanceChart } from "@/components/analytics/VideoPerformanceChart";
+import { fetchInternalStats, fetchPublishedVideos } from "@/api/analytics.api";
+import { ScraperTestModal } from "@/components/analytics/ScraperTestModal";
+import { PublishVideoModal } from "@/components/analytics/PublishVideoModal";
+import { PublishedVideosTable } from "@/components/analytics/PublishedVideosTable"; // YENİ IMPORT
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle
 } from "@/components/ui/card";
-import { 
-  Activity, 
-  Apple, 
-  Music, 
-  Video, 
-  Loader2 
+import {
+  Activity,
+  Apple,
+  Music,
+  Video,
+  Loader2
 } from "lucide-react";
-import { fetchInternalStats } from "@/api/analytics.api";
 
 export function Analytics() {
   const { data: stats, isLoading, isError } = useQuery({
     queryKey: ["internal-stats"],
     queryFn: fetchInternalStats,
-    refetchInterval: 60000, // 1 dakikada bir otomatik yenile (opsiyonel)
+    refetchInterval: 60000, 
+  });
+
+  const { data: publishedVideos } = useQuery({
+    queryKey: ["published-videos"],
+    queryFn: fetchPublishedVideos,
+    refetchInterval: 60000, 
   });
 
   // En popüler meyve ve dansı hesaplamak için güvenli kontroller
@@ -27,7 +37,7 @@ export function Analytics() {
 
   return (
     <div className="p-8 min-h-screen bg-background text-foreground space-y-8 animate-in fade-in duration-500">
-      
+
       {/* Sayfa Başlığı */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Analytics & Insights</h1>
@@ -52,7 +62,7 @@ export function Analytics() {
       {/* Özet Kartları (Stat Cards) */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          
+
           <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -124,21 +134,46 @@ export function Analytics() {
         </div>
       )}
 
-      {/* Gelecek Adımlar için Yer Tutucular */}
+      {/* Alt Kısım: Grafik ve İşlem Alanı */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
-        <div className="lg:col-span-2 border border-dashed border-border/50 rounded-lg h-96 flex items-center justify-center text-muted-foreground">
-          {/* Adım C: Recharts Grafiği Buraya Gelecek */}
-          [Recharts Performance Graph Placeholder]
+        
+        {/* Sol Taraf (2 Kolon Genişliğinde): Performans Grafiği */}
+        <div className="lg:col-span-2 min-h-[384px]">
+          <VideoPerformanceChart 
+            historyData={publishedVideos?.[0]?.analyticsHistory || []} 
+            title="TikTok Growth Trend (Top Video)"
+          />
         </div>
-        <div className="border border-dashed border-border/50 rounded-lg h-96 flex items-center justify-center text-muted-foreground">
-          {/* Adım B: Yeni Video Ekleme Formu Buraya/Modala Gelecek */}
-          [Add Published Video Action Area Placeholder]
+        
+        {/* Sağ Taraf (1 Kolon Genişliğinde): Scraper ve Video Ekleme Modalları */}
+        <div className="border border-dashed border-border/50 bg-card/30 rounded-lg h-96 flex flex-col items-center justify-center p-6 text-center space-y-6 shadow-sm">
+          <div className="space-y-2">
+            <h3 className="font-semibold text-foreground text-lg">Playwright Engine</h3>
+            <p className="text-sm text-muted-foreground">
+              Add a new TikTok URL to your tracking list or run a live test of the scraper.
+            </p>
+          </div>
+          
+          <div className="flex flex-col w-full max-w-xs gap-3">
+            {/* Hem Video Ekleme hem de Test Modalı alt alta */}
+            <PublishVideoModal />
+            <ScraperTestModal />
+          </div>
+
         </div>
       </div>
 
-      <div className="w-full border border-dashed border-border/50 rounded-lg h-64 flex items-center justify-center text-muted-foreground mt-8">
-        {/* Adım D: Published Videos Data Table Buraya Gelecek */}
-        [Data Table Placeholder]
+      {/* Adım D: Yayınlanan Videolar Tablosu */}
+      <div className="mt-8 space-y-4">
+        <div>
+          <h3 className="text-lg font-semibold text-foreground">Tracked Portfolio</h3>
+          <p className="text-sm text-muted-foreground">
+            All published TikTok videos currently monitored by the ShakyFruits background engine.
+          </p>
+        </div>
+        
+        {/* Yer tutucu silindi, gerçek tablo bileşeni eklendi */}
+        <PublishedVideosTable videos={publishedVideos} />
       </div>
 
     </div>

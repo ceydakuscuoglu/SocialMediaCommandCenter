@@ -27,7 +27,7 @@ namespace ShakyFruits.API.Workers
 
                 // Test için 1 dakika (60 sn) ayarlıyoruz. Canlıda bunu 12 veya 24 saat yapabilirsin.
                 // Örn: TimeSpan.FromHours(12)
-                var timer = new PeriodicTimer(TimeSpan.FromMinutes(1));
+                var timer = new PeriodicTimer(TimeSpan.FromMinutes(2));
 
                 while (await timer.WaitForNextTickAsync(stoppingToken))
                 {
