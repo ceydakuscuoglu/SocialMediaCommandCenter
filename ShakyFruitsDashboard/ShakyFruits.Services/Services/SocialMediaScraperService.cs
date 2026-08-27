@@ -42,7 +42,7 @@ namespace ShakyFruits.Services
             // YENİ GÜVENLİK ZIRHI: Gerçek Chrome ve Anti-Bot ayarları
             await using var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
             {
-                Headless = false, // DİKKAT: İlk seferlik false yapıyoruz ki ekranı görüp puzzle'ı çözelim
+                Headless = true, // DİKKAT: İlk seferlik false yapıyoruz ki ekranı görüp puzzle'ı çözelim
                 Channel = "chrome", // Gerçek Google Chrome'u kullanır (Bot algılamasını %90 azaltır)
                 Args = new[] { "--disable-blink-features=AutomationControlled" } // Bot etiketini siler
             });

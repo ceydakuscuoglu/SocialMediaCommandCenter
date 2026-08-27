@@ -1,33 +1,15 @@
 import { useState } from "react";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
-import { fetchCredits } from "@/api/jobs.api";
-import { KlingCreditCard } from "@/components/dashboard/KlingCreditCard";
-import { useQuery } from "@tanstack/react-query";
-import { Clapperboard, BarChart3, ListVideo } from "lucide-react";
-import { JobsTable } from "@/components/jobs/JobsTable";
+import { Clapperboard, BarChart3, ListVideo, LayoutDashboard } from "lucide-react";
 import { NewJobDialog } from "@/components/jobs/NewJobDialog";
 import { Button } from "@/components/ui/button";
 
-// YENİ EKLENEN: Az önce yazdığımız Analytics sayfasını import ediyoruz
-import { Analytics } from "@/pages/Analytics"; 
+// SAYFALARIMIZ (Pages)
+import { Dashboard } from "@/pages/Dashboard";
+import { Pipeline } from "@/pages/Pipeline";
+import { Analytics } from "@/pages/Analytics";
 
 function App() {
-  // Hangi sekmede olduğumuzu takip eden State
-  const [activeTab, setActiveTab] = useState<"pipeline" | "analytics">("pipeline");
-
-const { data: creditData, isLoading } = useQuery({
-    queryKey: ["kling-credits"],
-    queryFn: fetchCredits,
-    // refetchInterval: 60000 satırını SİLDİK
-    staleTime: 24 * 60 * 60 * 1000, // Veriyi 24 saat boyunca "taze" kabul et (tekrar çekme)
-    refetchOnWindowFocus: false, // Kullanıcı başka sekmeye gidip gelince yenileme
-  });
+  const [activeTab, setActiveTab] = useState<"dashboard" | "pipeline" | "analytics">("dashboard");
 
   return (
     <div className="min-h-screen bg-background p-8 text-foreground font-sans">
@@ -47,8 +29,16 @@ const { data: creditData, isLoading } = useQuery({
           Kling AI Video Automation & Content Management
         </p>
 
-        {/* YENİ EKLENEN: Sayfalar Arası Geçiş Menüsü */}
+        {/* 3'LÜ MENÜ SİSTEMİ */}
         <div className="flex items-center gap-2 mt-4 border-b border-border/40 pb-4">
+          <Button
+            variant={activeTab === "dashboard" ? "default" : "ghost"}
+            onClick={() => setActiveTab("dashboard")}
+            className="gap-2"
+          >
+            <LayoutDashboard className="w-4 h-4" />
+            Dashboard
+          </Button>
           <Button
             variant={activeTab === "pipeline" ? "default" : "ghost"}
             onClick={() => setActiveTab("pipeline")}
@@ -68,31 +58,12 @@ const { data: creditData, isLoading } = useQuery({
         </div>
       </div>
 
-      {/* İÇERİK ALANI: Hangi sekme seçiliyse o bileşeni göster */}
-      {activeTab === "pipeline" ? (
-        <div className="space-y-6 animate-in fade-in duration-300">
-          {/* İstatistik Kartları */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <KlingCreditCard data={creditData} isLoading={isLoading} />
-          </div>
-
-          {/* Tablo */}
-          <Card className="shadow-sm border-border/40">
-            <CardHeader className="bg-muted/20 border-b border-border/40 pb-4">
-              <CardTitle className="text-xl">Production Pipeline</CardTitle>
-              <CardDescription>Real-time generation tasks tracked by the local C# backend.</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <JobsTable />
-            </CardContent>
-          </Card>
-        </div>
-      ) : (
-        // Analitik Sayfasını Burada Render Ediyoruz!
-        <div className="animate-in fade-in zoom-in-95 duration-300">
-          <Analytics />
-        </div>
-      )}
+      {/* İÇERİK ALANI: Hangi sayfa seçiliyse sadece onu render et */}
+      <div className="mt-8">
+        {activeTab === "dashboard" && <Dashboard />}
+        {activeTab === "pipeline" && <Pipeline />}
+        {activeTab === "analytics" && <Analytics />}
+      </div>
       
     </div>
   );

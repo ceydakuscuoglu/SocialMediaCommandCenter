@@ -3,7 +3,6 @@ import { VideoPerformanceChart } from "@/components/analytics/VideoPerformanceCh
 import { fetchInternalStats, fetchPublishedVideos } from "@/api/analytics.api";
 import { ScraperTestModal } from "@/components/analytics/ScraperTestModal";
 import { PublishVideoModal } from "@/components/analytics/PublishVideoModal";
-import { TikTokAccountOverview } from "@/components/analytics/TikTokAccountOverview";
 import { PublishedVideosTable } from "@/components/analytics/PublishedVideosTable"; // YENİ IMPORT
 import {
   Card,
@@ -37,8 +36,7 @@ export function Analytics() {
   const topDance = stats?.danceStats?.sort((a, b) => b.usageCount - a.usageCount)[0];
 
   return (
-    <div className="p-6 min-h-screen bg-background text-foreground space-y-8 animate-in fade-in duration-500">
-      {/* Sayfa Başlığı */}
+    <div className="p-8 min-h-screen bg-background text-foreground space-y-8 animate-in fade-in duration-500">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Analytics & Insights</h1>
         <p className="text-muted-foreground mt-2">
@@ -46,9 +44,10 @@ export function Analytics() {
         </p>
       </div>
 
-      {/* YENİ EKLENEN: TikTok Hesap Özeti Başlığı */}
-      <TikTokAccountOverview />
-      {/* Yükleniyor / Hata Durumları */}
+      {/* TIKTOK ACCOUNT OVERVIEW BURADAN SİLİNDİ */}
+
+      {/* Yükleniyor / Hata Durumları ve Stat Kartları aynen kalıyor */}
+      {/* ... */}
       {isLoading && (
         <div className="flex items-center justify-center h-32 text-muted-foreground">
           <Loader2 className="w-6 h-6 animate-spin mr-2" />

@@ -25,7 +25,7 @@ namespace ShakyFruits.API.Workers
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _logger.LogInformation("Analytics Scraper Worker başlatıldı...");
-            var timer = new PeriodicTimer(TimeSpan.FromMinutes(2));
+            var timer = new PeriodicTimer(TimeSpan.FromMinutes(5));
 
             while (await timer.WaitForNextTickAsync(stoppingToken))
             {
