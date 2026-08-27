@@ -112,6 +112,12 @@ namespace ShakyFruits.API.Workers
                 var accountStats = await scraperService.ScrapeAccountAnalyticsAsync();
                 var newAccountRecord = new AccountAnalyticsHistory
                 {
+                    // Yeni eklenenler
+                    LifetimeLikes = accountStats.LifetimeLikes,
+                    TotalFollowers = accountStats.TotalFollowers,
+                    FollowingCount = accountStats.FollowingCount,
+
+                    // Eskiler
                     TotalVideoViews = accountStats.TotalVideoViews,
                     ProfileViews = accountStats.ProfileViews,
                     TotalLikes = accountStats.TotalLikes,

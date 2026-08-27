@@ -39,6 +39,19 @@ export interface ScraperTestResult {
   };
 }
 
+export interface AccountAnalyticsHistory {
+  lifetimeLikes: number;
+  totalFollowers: number;
+  followingCount: number;
+  totalVideoViews: number;
+  profileViews: number;
+  totalLikes: number;
+  totalComments: number;
+  totalShares: number;
+  estimatedRewards: number;
+  recordedAt: string;
+}
+
 // --- API SERVICES ---
 
 // Backend portunu (örn: 5290) kendi sistemine göre güncelle
@@ -79,5 +92,11 @@ export const addPublishedVideo = async (payload: { videoGenerationId: number; po
     const errData = await response.json().catch(() => null);
     throw new Error(errData?.message || "Video sisteme eklenirken bir hata oluştu.");
   }
+};
+
+export const fetchAccountHistory = async (): Promise<AccountAnalyticsHistory[]> => {
+  const response = await fetch(`${API_BASE_URL}/account-history`);
+  if (!response.ok) throw new Error("Hesap verileri alınamadı.");
+  return response.json();
 };
 

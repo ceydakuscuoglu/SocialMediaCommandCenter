@@ -190,18 +190,21 @@ namespace ShakyFruits.API.Controllers
             {
                 // React'in grafikleri çizebilmesi için eskiden yeniye doğru sıralı gönderiyoruz
                 var history = await _context.AccountAnalyticsHistory
-                    .OrderBy(a => a.RecordedAt)
-                    .Select(a => new
-                    {
-                        totalVideoViews = a.TotalVideoViews,
-                        profileViews = a.ProfileViews,
-                        totalLikes = a.TotalLikes,
-                        totalComments = a.TotalComments,
-                        totalShares = a.TotalShares,
-                        estimatedRewards = a.EstimatedRewards,
-                        recordedAt = a.RecordedAt
-                    })
-                    .ToListAsync();
+                 .OrderBy(a => a.RecordedAt)
+                 .Select(a => new
+                 {
+                     lifetimeLikes = a.LifetimeLikes,
+                     totalFollowers = a.TotalFollowers,
+                     followingCount = a.FollowingCount,
+                     totalVideoViews = a.TotalVideoViews,
+                     profileViews = a.ProfileViews,
+                     totalLikes = a.TotalLikes,
+                     totalComments = a.TotalComments,
+                     totalShares = a.TotalShares,
+                     estimatedRewards = a.EstimatedRewards,
+                     recordedAt = a.RecordedAt
+                 })
+                 .ToListAsync();
 
                 return Ok(history);
             }

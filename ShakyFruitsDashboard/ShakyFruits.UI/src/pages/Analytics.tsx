@@ -3,6 +3,7 @@ import { VideoPerformanceChart } from "@/components/analytics/VideoPerformanceCh
 import { fetchInternalStats, fetchPublishedVideos } from "@/api/analytics.api";
 import { ScraperTestModal } from "@/components/analytics/ScraperTestModal";
 import { PublishVideoModal } from "@/components/analytics/PublishVideoModal";
+import { TikTokAccountOverview } from "@/components/analytics/TikTokAccountOverview";
 import { PublishedVideosTable } from "@/components/analytics/PublishedVideosTable"; // YENİ IMPORT
 import {
   Card,
@@ -22,13 +23,13 @@ export function Analytics() {
   const { data: stats, isLoading, isError } = useQuery({
     queryKey: ["internal-stats"],
     queryFn: fetchInternalStats,
-    refetchInterval: 60000, 
+    refetchInterval: 60000,
   });
 
   const { data: publishedVideos } = useQuery({
     queryKey: ["published-videos"],
     queryFn: fetchPublishedVideos,
-    refetchInterval: 60000, 
+    refetchInterval: 60000,
   });
 
   // En popüler meyve ve dansı hesaplamak için güvenli kontroller
@@ -36,8 +37,7 @@ export function Analytics() {
   const topDance = stats?.danceStats?.sort((a, b) => b.usageCount - a.usageCount)[0];
 
   return (
-    <div className="p-8 min-h-screen bg-background text-foreground space-y-8 animate-in fade-in duration-500">
-
+    <div className="p-6 min-h-screen bg-background text-foreground space-y-8 animate-in fade-in duration-500">
       {/* Sayfa Başlığı */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Analytics & Insights</h1>
@@ -46,6 +46,8 @@ export function Analytics() {
         </p>
       </div>
 
+      {/* YENİ EKLENEN: TikTok Hesap Özeti Başlığı */}
+      <TikTokAccountOverview />
       {/* Yükleniyor / Hata Durumları */}
       {isLoading && (
         <div className="flex items-center justify-center h-32 text-muted-foreground">
@@ -136,15 +138,15 @@ export function Analytics() {
 
       {/* Alt Kısım: Grafik ve İşlem Alanı */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
-        
+
         {/* Sol Taraf (2 Kolon Genişliğinde): Performans Grafiği */}
         <div className="lg:col-span-2 min-h-[384px]">
-          <VideoPerformanceChart 
-            historyData={publishedVideos?.[0]?.analyticsHistory || []} 
+          <VideoPerformanceChart
+            historyData={publishedVideos?.[0]?.analyticsHistory || []}
             title="TikTok Growth Trend (Top Video)"
           />
         </div>
-        
+
         {/* Sağ Taraf (1 Kolon Genişliğinde): Scraper ve Video Ekleme Modalları */}
         <div className="border border-dashed border-border/50 bg-card/30 rounded-lg h-96 flex flex-col items-center justify-center p-6 text-center space-y-6 shadow-sm">
           <div className="space-y-2">
@@ -153,7 +155,7 @@ export function Analytics() {
               Add a new TikTok URL to your tracking list or run a live test of the scraper.
             </p>
           </div>
-          
+
           <div className="flex flex-col w-full max-w-xs gap-3">
             {/* Hem Video Ekleme hem de Test Modalı alt alta */}
             <PublishVideoModal />
@@ -171,7 +173,7 @@ export function Analytics() {
             All published TikTok videos currently monitored by the ShakyFruits background engine.
           </p>
         </div>
-        
+
         {/* Yer tutucu silindi, gerçek tablo bileşeni eklendi */}
         <PublishedVideosTable videos={publishedVideos} />
       </div>
