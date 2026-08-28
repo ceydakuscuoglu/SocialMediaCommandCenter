@@ -59,53 +59,88 @@ namespace ShakyFruits.API.Controllers
         }
 
 
-        // 1. AŞAMA: Hazırlık ve Fiyat Alma
         [HttpPost("prepare")]
         public async Task<IActionResult> Prepare([FromForm] BotPrepareRequestDto request)
         {
             try
             {
-                // 1. Dosyaları kalıcı klasöre değil, "Temp" (Geçici) klasörüne kaydet
-                string savedImagePath = await SaveFileAsync(request.FruitImage, "Temp");
-                if (string.IsNullOrEmpty(savedImagePath)) return BadRequest("Meyve fotoğrafı zorunludur!");
+                string finalImagePath = string.Empty;
+                string? tempImagePath = null;
 
-                string savedVideoPath = string.Empty;
-                if (!request.IsRecreate)
+                // 1. MEYVE FOTOĞRAFI MANTIĞI (DB'den mi yoksa yeni yükleme mi?)
+                if (request.ExistingFruitAssetId.HasValue)
                 {
-                    if (request.ReferenceVideo == null) return BadRequest("Sıfırdan üretim için referans video zorunludur!");
-                    savedVideoPath = await SaveFileAsync(request.ReferenceVideo, "Temp");
+                    var existingFruit = await _context.FruitAssets.FindAsync(request.ExistingFruitAssetId.Value);
+                    if (existingFruit == null) return BadRequest("Seçilen meyve fotoğrafı bulunamadı!");
+
+                    finalImagePath = existingFruit.ImagePath; // DB'deki asıl yol
+                }
+                else if (request.FruitImage != null)
+                {
+                    tempImagePath = await SaveFileAsync(request.FruitImage, "Temp");
+                    finalImagePath = tempImagePath; // Temp'teki geçici yol
+                }
+                else
+                {
+                    return BadRequest("Lütfen ya var olan bir meyveyi seçin ya da yeni bir fotoğraf yükleyin!");
                 }
 
-                // --- VERİTABANI KAYIT İŞLEMİ BURADAN TAMAMEN SİLİNDİ ---
+                // 2. REFERANS VİDEO MANTIĞI
+                string? finalVideoPath = null;
+                string? tempVideoPath = null;
+
+                if (!request.IsRecreate)
+                {
+                    if (request.ExistingReferenceVideoId.HasValue)
+                    {
+                        var existingVideo = await _context.ReferenceVideos.FindAsync(request.ExistingReferenceVideoId.Value);
+                        if (existingVideo == null) return BadRequest("Seçilen referans video bulunamadı!");
+
+                        finalVideoPath = existingVideo.VideoPath;
+                    }
+                    else if (request.ReferenceVideo != null)
+                    {
+                        tempVideoPath = await SaveFileAsync(request.ReferenceVideo, "Temp");
+                        finalVideoPath = tempVideoPath;
+                    }
+                    else
+                    {
+                        return BadRequest("Sıfırdan üretim için var olan bir videoyu seçmeli veya yeni bir video yüklemelisiniz!");
+                    }
+                }
 
                 if (string.IsNullOrWhiteSpace(request.TargetModel) || request.TargetModel == "string") request.TargetModel = "VIDEO 2.6";
                 if (string.IsNullOrWhiteSpace(request.TargetResolution) || request.TargetResolution == "string") request.TargetResolution = "720p";
 
                 string appliedPrompt = KlingPrompts.GetFixPrompt(request.IsMultipleFruits);
 
-                // 2. Maliyet Hesaplama
+                // 3. MALİYET HESAPLAMA (Artık Final Yolları kullanıyoruz)
                 int calculatedCost = 0;
                 double videoDuration = 0;
 
                 if (request.IsRecreate)
                 {
                     calculatedCost = await _botService.PrepareAndGetCostAsync(
-                        request.IsRecreate, savedImagePath, savedVideoPath, appliedPrompt, request.TargetUrl, request.TargetModel, request.TargetResolution);
+                        request.IsRecreate, finalImagePath, finalVideoPath, appliedPrompt, request.TargetUrl, request.TargetModel, request.TargetResolution);
                 }
                 else
                 {
-                    videoDuration = KlingCostCalculator.GetVideoDurationInSeconds(savedVideoPath);
+                    videoDuration = KlingCostCalculator.GetVideoDurationInSeconds(finalVideoPath);
                     calculatedCost = KlingCostCalculator.CalculateCost(request.TargetModel, request.TargetResolution, videoDuration);
                 }
 
-                // 3. Verileri RAM'e (Cache) Kaydet
-                var sessionId = Guid.NewGuid().ToString(); // Benzersiz bir bilet oluşturuyoruz
+                // 4. CACHE (RAM) KAYDI
+                var sessionId = Guid.NewGuid().ToString();
                 var sessionData = new TempPrepareSession
                 {
-                    TempImagePath = savedImagePath,
-                    TempVideoPath = savedVideoPath,
-                    FruitTitle = !string.IsNullOrWhiteSpace(request.FruitTitle) ? request.FruitTitle : request.FruitImage.FileName,
-                    DanceStyle = !string.IsNullOrWhiteSpace(request.DanceStyle) ? request.DanceStyle : "Özel Yükleme",
+                    ExistingFruitAssetId = request.ExistingFruitAssetId,
+                    ExistingReferenceVideoId = request.ExistingReferenceVideoId,
+                    TempImagePath = tempImagePath,
+                    TempVideoPath = tempVideoPath,
+                    FinalImagePathToUse = finalImagePath,
+                    FinalVideoPathToUse = finalVideoPath,
+                    FruitTitle = !string.IsNullOrWhiteSpace(request.FruitTitle) ? request.FruitTitle : (request.FruitImage?.FileName ?? "Kayıtlı Meyve"),
+                    DanceStyle = !string.IsNullOrWhiteSpace(request.DanceStyle) ? request.DanceStyle : "Kayıtlı Stil",
                     IsMultipleFruits = request.IsMultipleFruits,
                     TargetModel = request.TargetModel,
                     TargetResolution = request.TargetResolution,
@@ -113,16 +148,14 @@ namespace ShakyFruits.API.Controllers
                     IsRecreate = request.IsRecreate
                 };
 
-                // Bu bilet 30 dakika boyunca geçerli olacak
                 _cache.Set(sessionId, sessionData, TimeSpan.FromMinutes(30));
 
-                // 4. REACT'e DB ID'leri yerine SessionId döndür
                 return Ok(new
                 {
                     Message = "Hazırlık tamamlandı. Onay bekleniyor.",
                     CalculatedCredits = calculatedCost,
                     VideoDurationSeconds = videoDuration,
-                    SessionId = sessionId // <-- ARTIK REACT BU ID'Yİ SAKLAYACAK
+                    SessionId = sessionId
                 });
             }
             catch (Exception ex)
@@ -131,47 +164,60 @@ namespace ShakyFruits.API.Controllers
             }
         }
 
-        // 2. AŞAMA: Onay ve Üretim
         [HttpPost("confirm")]
         public async Task<IActionResult> Confirm([FromBody] BotConfirmRequestDto request)
         {
             try
             {
-                // 1. RAM'den (Cache) bilet numaramıza göre verileri çekiyoruz
                 if (!_cache.TryGetValue(request.SessionId, out TempPrepareSession sessionData))
                 {
                     return BadRequest("Oturum süresi dolmuş veya geçersiz. Lütfen sayfayı yenileyip tekrar hazırlık yapın.");
                 }
 
-                // 2. VERİTABANINA KAYIT (Prepare'den sildiğimiz işlemi buraya aldık)
-                var fruitAsset = new FruitAsset
-                {
-                    ImagePath = sessionData.TempImagePath,
-                    Title = sessionData.FruitTitle,
-                    IsMultipleFruits = sessionData.IsMultipleFruits
-                };
-                _context.FruitAssets.Add(fruitAsset);
+                int finalFruitAssetId = 0;
+                int? finalReferenceVideoId = null;
 
-                ReferenceVideo? refVideo = null;
-                if (!string.IsNullOrEmpty(sessionData.TempVideoPath))
+                // 1. MEYVE: Var olanı mı kullanalım, yeni mi oluşturalım?
+                if (sessionData.ExistingFruitAssetId.HasValue)
                 {
-                    refVideo = new ReferenceVideo
+                    finalFruitAssetId = sessionData.ExistingFruitAssetId.Value;
+                }
+                else
+                {
+                    var fruitAsset = new FruitAsset
+                    {
+                        ImagePath = sessionData.TempImagePath,
+                        Title = sessionData.FruitTitle,
+                        IsMultipleFruits = sessionData.IsMultipleFruits
+                    };
+                    _context.FruitAssets.Add(fruitAsset);
+                    await _context.SaveChangesAsync();
+                    finalFruitAssetId = fruitAsset.Id;
+                }
+
+                // 2. VİDEO: Var olanı mı kullanalım, yeni mi oluşturalım?
+                if (sessionData.ExistingReferenceVideoId.HasValue)
+                {
+                    finalReferenceVideoId = sessionData.ExistingReferenceVideoId.Value;
+                }
+                else if (!string.IsNullOrEmpty(sessionData.TempVideoPath))
+                {
+                    var refVideo = new ReferenceVideo
                     {
                         VideoPath = sessionData.TempVideoPath,
                         DanceStyle = sessionData.DanceStyle,
                         SourceType = ReferenceSourceType.LocalUpload
                     };
                     _context.ReferenceVideos.Add(refVideo);
+                    await _context.SaveChangesAsync();
+                    finalReferenceVideoId = refVideo.Id;
                 }
 
-                // Değişiklikleri kaydet ki Fruit ve Video için gerçek ID'ler oluşsun
-                await _context.SaveChangesAsync();
-
-                // 3. Asıl işi (VideoGeneration) oluştur ve yeni oluşan ID'leri bağla
+                // 3. ANA KAYIT (Generation) OLUŞTUR
                 var newGeneration = new VideoGeneration
                 {
-                    FruitAssetId = fruitAsset.Id, // <-- Artık 0 değil, taptaze oluşan ID!
-                    ReferenceVideoId = refVideo?.Id,
+                    FruitAssetId = finalFruitAssetId, // Dinamik olarak atandı
+                    ReferenceVideoId = finalReferenceVideoId, // Dinamik olarak atandı
                     IsRecreate = sessionData.IsRecreate,
                     TargetUrl = sessionData.TargetUrl,
                     AppliedPrompt = KlingPrompts.GetFixPrompt(sessionData.IsMultipleFruits),
@@ -183,10 +229,9 @@ namespace ShakyFruits.API.Controllers
                 _context.VideoGenerations.Add(newGeneration);
                 await _context.SaveChangesAsync();
 
-                // 4. Sadece oluşan işin ID'sini Worker'ın dinlediği kuyruğa gönder
+                // 4. WORKER'I TETİKLE
                 await _queueManager.QueueJobAsync(newGeneration.Id);
 
-                // 5. Temizlik: İşlem bittiğine göre RAM'i meşgul etmemesi için Cache'i siliyoruz
                 _cache.Remove(request.SessionId);
 
                 return Ok(new
