@@ -7,13 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Dashboard } from "@/pages/Dashboard";
 import { Pipeline } from "@/pages/Pipeline";
 import { Analytics } from "@/pages/Analytics";
+import { Layers } from "lucide-react"; // İkonu ekle
+import { Assets } from "@/pages/Assets"; // Yeni sayfayı ekle
 
 function App() {
-  const [activeTab, setActiveTab] = useState<"dashboard" | "pipeline" | "analytics">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "pipeline" | "analytics" | "assets">("dashboard");
 
   return (
     <div className="min-h-screen bg-background p-8 text-foreground font-sans">
-      
+
       {/* Header & Action Area */}
       <div className="flex flex-col gap-4 mb-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -21,10 +23,10 @@ function App() {
             <Clapperboard className="w-9 h-9 text-primary" />
             <span>ShakyFruits Command Center</span>
           </h1>
-          
+
           <NewJobDialog />
         </div>
-        
+
         <p className="text-muted-foreground text-lg">
           Kling AI Video Automation & Content Management
         </p>
@@ -55,6 +57,14 @@ function App() {
             <BarChart3 className="w-4 h-4" />
             Analytics & Insights
           </Button>
+          <Button
+            variant={activeTab === "assets" ? "default" : "ghost"}
+            onClick={() => setActiveTab("assets")}
+            className="gap-2"
+          >
+            <Layers className="w-4 h-4" />
+            Asset Library
+          </Button>
         </div>
       </div>
 
@@ -63,8 +73,9 @@ function App() {
         {activeTab === "dashboard" && <Dashboard />}
         {activeTab === "pipeline" && <Pipeline />}
         {activeTab === "analytics" && <Analytics />}
+        {activeTab === "assets" && <Assets />}
       </div>
-      
+
     </div>
   );
 }
