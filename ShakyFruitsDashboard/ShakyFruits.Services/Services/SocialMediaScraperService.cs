@@ -15,7 +15,7 @@ namespace ShakyFruits.Services
             using var playwright = await Playwright.CreateAsync();
             await using var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
             {
-                Headless = true, // Ekranı mutlaka görmeliyiz
+                Headless = false, // Ekranı mutlaka görmeliyiz
                 Channel = "chrome",
                 Args = new[] { "--disable-blink-features=AutomationControlled" }
             });
@@ -42,7 +42,7 @@ namespace ShakyFruits.Services
             // YENİ GÜVENLİK ZIRHI: Gerçek Chrome ve Anti-Bot ayarları
             await using var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
             {
-                Headless = true, // DİKKAT: İlk seferlik false yapıyoruz ki ekranı görüp puzzle'ı çözelim
+                Headless = false, // DİKKAT: İlk seferlik false yapıyoruz ki ekranı görüp puzzle'ı çözelim
                 Channel = "chrome", // Gerçek Google Chrome'u kullanır (Bot algılamasını %90 azaltır)
                 Args = new[] { "--disable-blink-features=AutomationControlled" } // Bot etiketini siler
             });
@@ -96,7 +96,7 @@ namespace ShakyFruits.Services
             using var playwright = await Playwright.CreateAsync();
             await using var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
             {
-                Headless = true,
+                Headless = false,
                 Channel = "chrome",
                 Args = new[] { "--disable-blink-features=AutomationControlled" }
             });

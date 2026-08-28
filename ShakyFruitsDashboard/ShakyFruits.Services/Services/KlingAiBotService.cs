@@ -164,7 +164,7 @@ namespace ShakyFruits.Services
 
             await using var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
             {
-                Headless = true // Arka planda gizlice çalışır
+                Headless = true // Test ederken görebilmen için false. Canlıda true yapabilirsin.
             });
 
             var page = await browserContext.NewPageAsync();
@@ -172,23 +172,17 @@ namespace ShakyFruits.Services
             try
             {
                 // 1. Sayfaya git
-                await page.GotoAsync("https://kling.ai/app/user-profile/published/all", new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
+                await page.GotoAsync("https://kling.ai/app/user-profile/published/all", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded, Timeout = 60000 });
 
-                // --- YENİ EKLENEN KISIM: Araya Giren Reklam/Abonelik Penceresini Kapatma ---
+                // --- Araya Giren Reklam/Abonelik Penceresini Kapatma ---
                 try
                 {
-                    // 1. Botu uyar: "Bu başlığın ekranda görünmesini en fazla 3 saniye (3000ms) bekle"
                     var popupTitle = page.Locator("text='Subscribe to unlock exclusive features'");
-
-                    // Eğer 3 saniye içinde çıkmazsa hata fırlatıp catch bloğuna düşer (yani yola devam eder)
                     await popupTitle.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 5000 });
 
-                    // 2. Eğer buraya geçebildiyse pencere ekrana çıkmış demektir! 
-                    // Element UI pencerelerini kapatmanın en temiz yolu dışındaki gri alana tıklamaktır (Sol üst köşeye X:10, Y:10 koordinatına tıklıyoruz)
                     await page.Mouse.ClickAsync(10, 10);
-                    await Task.Delay(500); // Animasyonun kapanmasını yarım saniye bekle
+                    await Task.Delay(500);
 
-                    // 3. İnat edip kapanmadıysa ESC tuşuyla vur
                     if (await popupTitle.IsVisibleAsync())
                     {
                         await page.Keyboard.PressAsync("Escape");
@@ -197,17 +191,18 @@ namespace ShakyFruits.Services
                 }
                 catch
                 {
-                    // 3 saniye bekledik, pencere çıkmadıysa sorun yok demektir, asıl işimize geçebiliriz.
+                    // Reklam yoksa yola devam
                 }
 
-                // 2. "Credits" butonunu bul ve tıkla
-                var creditsButton = page.Locator(".click-item").Filter(new LocatorFilterOptions { HasText = "Credits" }).First;
-                await creditsButton.ClickAsync();
+                // 2. YENİ UI: Header'daki puan (Örn: 275) kutusunu bul ve tıkla
+                var pointBox = page.Locator(".point-box").First;
+                await pointBox.ClickAsync();
 
                 // 3. Tıkladıktan sonra açılan kredi özet penceresinin (.summary) görünür olmasını bekle
                 var summaryContainer = page.Locator(".summary");
                 await summaryContainer.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
-                await Task.Delay(2000);
+                await Task.Delay(2000); // Rakamların render olması için kısa bir bekleme
+
                 // 4. Verileri başlıklarına (h4) göre eşleştirip, içindeki <p> (rakam) etiketinden oku
                 string remainingText = await summaryContainer.Locator(".item")
                     .Filter(new LocatorFilterOptions { HasText = "Remaining Credits" }).Locator("p").InnerTextAsync();
@@ -221,7 +216,6 @@ namespace ShakyFruits.Services
                 string bonusText = await summaryContainer.Locator(".item")
                     .Filter(new LocatorFilterOptions { HasText = "Bonus Credits" }).Locator("p").InnerTextAsync();
 
-                // ParseCredit metodu ile temizleyip modele çevir ve gönder
                 return new KlingCreditsModel
                 {
                     RemainingCredits = ParseCredit(remainingText),
@@ -232,7 +226,6 @@ namespace ShakyFruits.Services
             }
             finally
             {
-                // İşlem bitince sekmeyi kapat
                 await page.CloseAsync();
             }
         }
