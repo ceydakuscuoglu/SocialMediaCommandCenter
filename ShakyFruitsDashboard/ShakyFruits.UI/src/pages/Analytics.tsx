@@ -22,13 +22,11 @@ export function Analytics() {
   const { data: stats, isLoading, isError } = useQuery({
     queryKey: ["internal-stats"],
     queryFn: fetchInternalStats,
-    refetchInterval: 60000,
   });
 
   const { data: publishedVideos } = useQuery({
     queryKey: ["published-videos"],
     queryFn: fetchPublishedVideos,
-    refetchInterval: 60000,
   });
 
   // En popüler meyve ve dansı hesaplamak için güvenli kontroller

@@ -6,7 +6,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { GenerationStatus } from "@/types/job.types";
+import { GenerationStatus } from "@/api/jobs.api";
 
 interface JobStatusBadgeProps {
   status: GenerationStatus | string | number;

@@ -9,7 +9,8 @@ using ShakyFruits.Core.Models;
 using ShakyFruits.Core.Services;
 using ShakyFruits.Services;
 using ShakyFruits.Data;
-using Microsoft.EntityFrameworkCore;
+using System.IO;
+using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace ShakyFruits.API.Controllers
@@ -311,7 +312,7 @@ namespace ShakyFruits.API.Controllers
             }
         }
 
-        [HttpGet("credits")]
+        /*[HttpGet("credits")]
         public async Task<IActionResult> GetCredits()
         {
             try
@@ -323,6 +324,66 @@ namespace ShakyFruits.API.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { Message = "Krediler çekilirken bir hata oluştu.", Error = ex.Message });
+            }
+        }*/
+        [HttpGet("credits")]
+        public async Task<IActionResult> GetCurrentCredits()
+        {
+            try
+            {
+                // Dosyanın kaydedileceği yol (Proje ana dizininde credits_cache.json)
+                string cacheFilePath = Path.Combine(Directory.GetCurrentDirectory(), "credits_cache.json");
+                var today = DateTime.UtcNow.Date;
+
+                // 1. JSON DOSYASINI KONTROL ET (Uygulama kapansa bile dosya durur)
+                if (System.IO.File.Exists(cacheFilePath))
+                {
+                    string jsonContent = await System.IO.File.ReadAllTextAsync(cacheFilePath);
+                    var cachedData = JsonSerializer.Deserialize<CreditCacheModelDto>(jsonContent);
+
+                    // Eğer dosya varsa ve "Bugün" güncellendiyse direkt dosyadan dön
+                    if (cachedData != null && cachedData.LastScrapedAt.Date == today)
+                    {
+                        return Ok(new
+                        {
+                            remainingCredits = cachedData.RemainingCredits,
+                            membershipCredits = cachedData.MembershipCredits,
+                            topUpCredits = cachedData.TopUpCredits,
+                            bonusCredits = cachedData.BonusCredits,
+                            source = "Local JSON File" // Veritabanı yok, dosyadan geldi
+                        });
+                    }
+                }
+
+                // 2. DOSYA YOKSA VEYA DÜNDEN KALDIYSA PLAYWRIGHT ÇALIŞSIN
+                var scrapedCredits = await _botService.GetCreditsAsync();
+
+                // 3. YENİ VERİYİ JSON DOSYASINA YAZ (Bir sonraki başlatmada buradan okuyacak)
+                var newCacheData = new CreditCacheModelDto
+                {
+                    RemainingCredits = scrapedCredits.RemainingCredits,
+                    MembershipCredits = scrapedCredits.MembershipCredits,
+                    TopUpCredits = scrapedCredits.TopUpCredits,
+                    BonusCredits = scrapedCredits.BonusCredits,
+                    LastScrapedAt = DateTime.UtcNow
+                };
+
+                string newJsonContent = JsonSerializer.Serialize(newCacheData, new JsonSerializerOptions { WriteIndented = true });
+                await System.IO.File.WriteAllTextAsync(cacheFilePath, newJsonContent);
+
+                // 4. Ön yüze (React) gönder
+                return Ok(new
+                {
+                    remainingCredits = newCacheData.RemainingCredits,
+                    membershipCredits = newCacheData.MembershipCredits,
+                    topUpCredits = newCacheData.TopUpCredits,
+                    bonusCredits = newCacheData.BonusCredits,
+                    source = "Live Scrape" // Yeni çekildi ve dosyaya yazıldı
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Krediler getirilirken hata oluştu.", Error = ex.Message });
             }
         }
     }

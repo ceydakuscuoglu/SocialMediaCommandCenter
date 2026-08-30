@@ -14,7 +14,6 @@ export function TikTokAccountOverview() {
   const { data: history, isLoading } = useQuery({
     queryKey: ["account-history"],
     queryFn: fetchAccountHistory,
-    refetchInterval: 60000,
   });
 
   if (isLoading) {
