@@ -7,7 +7,6 @@ export function Dashboard() {
   const { data: creditData, isLoading } = useQuery({
     queryKey: ["kling-credits"],
     queryFn: fetchCredits,
-    staleTime: 24 * 60 * 60 * 1000, 
     refetchOnWindowFocus: false, 
   });
 

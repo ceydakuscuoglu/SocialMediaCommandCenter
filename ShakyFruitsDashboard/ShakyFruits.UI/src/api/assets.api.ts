@@ -45,6 +45,17 @@ export interface ReferenceVideo {
     klingSourceUrlOrId: string | null;
 }
 
+export interface AddHistoricalVideoRequest {
+    fruitAssetId: number;
+    referenceVideoId?: number | null;
+    outputVideoPath: string;
+    aiGeneratedCaption?: string;
+    isPublished: boolean;
+    postUrl?: string;
+    publishedAt?: string | null;
+    platform?: number;
+}
+
 
 // --- API CALLS ---
 export const addFruitType = async (data: CreateFruitTypeRequest) => {
@@ -92,5 +103,19 @@ export const fetchFruitAssets = async (): Promise<FruitAsset[]> => {
 export const fetchReferenceVideos = async (): Promise<ReferenceVideo[]> => {
     const res = await fetch(`${API_BASE_URL}/reference-videos`);
     if (!res.ok) throw new Error("Referans videolar alınamadı.");
+    return res.json();
+};
+
+export const addHistoricalVideo = async (data: AddHistoricalVideoRequest) => {
+    const res = await fetch(`${API_BASE_URL}/historical-videos`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+    });
+
+    if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        throw new Error(errData?.message || "Geçmiş video eklenirken bir hata oluştu.");
+    }
     return res.json();
 };

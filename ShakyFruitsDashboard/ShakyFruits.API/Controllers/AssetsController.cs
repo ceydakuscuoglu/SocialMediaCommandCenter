@@ -210,5 +210,68 @@ namespace ShakyFruits.API.Controllers
 
             return Ok(asset);
         }
+
+        [HttpPost("historical-videos")]
+        public async Task<IActionResult> AddHistoricalVideo([FromBody] AddHistoricalVideoRequestDto request)
+        {
+            try
+            {
+                // 1. Meyveyi nesne olarak veritabanından çek
+                var fruitAsset = await _context.FruitAssets.FindAsync(request.FruitAssetId);
+                if (fruitAsset == null)
+                    return BadRequest("Geçersiz FruitAssetId. Önce meyveyi sisteme eklemelisiniz.");
+
+                // 2. VideoGeneration kaydını oluştur
+                var newGeneration = new VideoGeneration
+                {
+                    FruitAssetId = request.FruitAssetId,
+                    ReferenceVideoId = request.ReferenceVideoId,
+                    IsRecreate = false,
+                    TargetUrl = null,
+                    // YENİ: Tek/Çok meyve mantığını kendi içinden çekiyor
+                    AppliedPrompt = fruitAsset.GetAppliedFixPrompt(),
+                    TargetModel = "Bilinmiyor (Geçmiş Veri)",
+                    TargetResolution = "Bilinmiyor",
+                    Status = GenerationStatus.Completed,
+                    OutputVideoPath = request.OutputVideoPath,
+                    AiGeneratedCaption = request.AiGeneratedCaption
+                };
+
+                _context.VideoGenerations.Add(newGeneration);
+                await _context.SaveChangesAsync();
+
+                int? publishedVideoId = null;
+
+                // 3. Eğer video TikTok'ta yayınlandıysa PublishedVideo tablosuna da ekle
+                if (request.IsPublished && !string.IsNullOrWhiteSpace(request.PostUrl))
+                {
+                    var newPublished = new PublishedVideo
+                    {
+                        VideoGenerationId = newGeneration.Id,
+                        Platform = request.Platform,
+                        PostUrl = request.PostUrl,
+                        PublishedAt = request.PublishedAt ?? DateTime.UtcNow
+                    };
+
+                    _context.PublishedVideos.Add(newPublished);
+                    await _context.SaveChangesAsync();
+                    publishedVideoId = newPublished.Id;
+                }
+
+                return Ok(new
+                {
+                    message = "Geçmiş video sisteme başarıyla eklendi.",
+                    videoGenerationId = newGeneration.Id,
+                    publishedVideoId = publishedVideoId,
+                    outputVideoPath = newGeneration.OutputVideoPath,
+                    appliedPrompt = newGeneration.AppliedPrompt, // UI'da doğru atandığını görmek için
+                    isTrackedByScraper = publishedVideoId.HasValue
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Geçmiş video eklenirken hata oluştu.", Error = ex.Message });
+            }
+        }
     }
 }

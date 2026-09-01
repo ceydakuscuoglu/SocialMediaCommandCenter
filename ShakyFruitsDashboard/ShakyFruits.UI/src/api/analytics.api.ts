@@ -52,6 +52,37 @@ export interface AccountAnalyticsHistory {
   recordedAt: string;
 }
 
+export interface LatestAccountStats {
+  lifetimeLikes: number;
+  totalFollowers: number;
+  followingCount: number;
+  totalVideoViews: number;
+  profileViews: number;
+  totalLikes: number;
+  totalComments: number;
+  totalShares: number;
+  estimatedRewards: number;
+  recordedAt: string;
+  source: string;
+}
+
+export interface VideoStatsSnapshot {
+  views: number;
+  likes: number;
+  comments: number;
+  shares: number;
+  favorites: number;
+  recordedAt: string;
+}
+
+export interface PublishedVideoLatest {
+  videoId: number;
+  platform: string;
+  postUrl: string;
+  publishedAt: string;
+  latestStats: VideoStatsSnapshot | null;
+}
+
 // --- API SERVICES ---
 
 // Backend portunu (örn: 5290) kendi sistemine göre güncelle
@@ -96,6 +127,29 @@ export const addPublishedVideo = async (payload: { videoGenerationId: number; po
 
 export const fetchAccountHistory = async (): Promise<AccountAnalyticsHistory[]> => {
   const response = await fetch(`${API_BASE_URL}/account-history`);
+  if (!response.ok) throw new Error("Hesap verileri alınamadı.");
+  return response.json();
+};
+
+// 1. Dashboard Tablosu İçin Hızlı Yükleme (Liste)
+export const fetchAllVideosLatestStats = async (): Promise<PublishedVideoLatest[]> => {
+  const response = await fetch(`${API_BASE_URL}/videos/latest-stats`);
+  if (!response.ok) throw new Error("Video listesi alınamadı.");
+  return response.json();
+};
+
+// 2. Tablo Satırındaki "Yenile" Butonu İçin (Zorla Yenileme)
+export const forceRefreshVideoStats = async (videoId: number): Promise<any> => {
+  const response = await fetch(`${API_BASE_URL}/videos/${videoId}/force-refresh`, {
+    method: "POST"
+  });
+  if (!response.ok) throw new Error("Video verileri yenilenemedi.");
+  return response.json();
+};
+
+// 3. Hesap Özeti İçin Akıllı Cache
+export const fetchLatestAccountStats = async (): Promise<LatestAccountStats> => {
+  const response = await fetch(`${API_BASE_URL}/latest-account-stats`);
   if (!response.ok) throw new Error("Hesap verileri alınamadı.");
   return response.json();
 };

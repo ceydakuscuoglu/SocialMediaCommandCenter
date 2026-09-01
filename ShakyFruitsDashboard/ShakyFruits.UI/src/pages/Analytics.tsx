@@ -1,6 +1,7 @@
+
 import { useQuery } from "@tanstack/react-query";
+import { fetchInternalStats, fetchAllVideosLatestStats, fetchPublishedVideos } from "@/api/analytics.api";
 import { VideoPerformanceChart } from "@/components/analytics/VideoPerformanceChart";
-import { fetchInternalStats, fetchPublishedVideos } from "@/api/analytics.api";
 import { ScraperTestModal } from "@/components/analytics/ScraperTestModal";
 import { PublishVideoModal } from "@/components/analytics/PublishVideoModal";
 import { PublishedVideosTable } from "@/components/analytics/PublishedVideosTable"; // YENİ IMPORT
@@ -22,6 +23,12 @@ export function Analytics() {
   const { data: stats, isLoading, isError } = useQuery({
     queryKey: ["internal-stats"],
     queryFn: fetchInternalStats,
+  });
+
+  // YENİ AKILLI TABLO SORGUSU
+  const { data: latestVideos } = useQuery({
+    queryKey: ["published-videos-latest"],
+    queryFn: fetchAllVideosLatestStats
   });
 
   const { data: publishedVideos } = useQuery({
@@ -164,15 +171,20 @@ export function Analytics() {
 
       {/* Adım D: Yayınlanan Videolar Tablosu */}
       <div className="mt-8 space-y-4">
-        <div>
-          <h3 className="text-lg font-semibold text-foreground">Tracked Portfolio</h3>
-          <p className="text-sm text-muted-foreground">
-            All published TikTok videos currently monitored by the ShakyFruits background engine.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-semibold text-foreground">Tracked Portfolio</h3>
+            <p className="text-sm text-muted-foreground">
+              All published TikTok videos currently monitored by the ShakyFruits background engine.
+            </p>
+          </div>
+
+          {/* URL EKLEME BUTONU TABLO BAŞLIĞINDA */}
+          <PublishVideoModal />
         </div>
 
-        {/* Yer tutucu silindi, gerçek tablo bileşeni eklendi */}
-        <PublishedVideosTable videos={publishedVideos} />
+        {/* Tabloya yeni hızlı veriyi gönderiyoruz */}
+        <PublishedVideosTable videos={latestVideos} />
       </div>
 
     </div>

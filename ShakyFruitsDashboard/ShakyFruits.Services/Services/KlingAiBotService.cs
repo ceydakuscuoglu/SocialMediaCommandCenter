@@ -164,7 +164,7 @@ namespace ShakyFruits.Services
 
             await using var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
             {
-                Headless = true // Test ederken görebilmen için false. Canlıda true yapabilirsin.
+                Headless = false // Test ederken görebilmen için false. Canlıda true yapabilirsin.
             });
 
             var page = await browserContext.NewPageAsync();

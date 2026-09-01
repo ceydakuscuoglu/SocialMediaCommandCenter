@@ -5,6 +5,7 @@ import {
     fetchFruitTypes, fetchFruitAssets, fetchReferenceVideos,
     ReferenceSourceType
 } from "@/api/assets.api";
+import { AddHistoricalVideoModal } from "@/components/assets/AddHistoricalVideoModal";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -67,11 +68,16 @@ export function Assets() {
 
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
-            <div>
-                <h2 className="text-2xl font-semibold tracking-tight">Asset Library</h2>
-                <p className="text-muted-foreground mt-1">
-                    Manage raw materials for Kling AI generations.
-                </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 className="text-2xl font-semibold tracking-tight">Asset Library</h2>
+                    <p className="text-muted-foreground mt-1">
+                        Manage raw materials for Kling AI generations.
+                    </p>
+                </div>
+
+                {/* YENİ EKLENEN ARŞİV MODALI */}
+                <AddHistoricalVideoModal />
             </div>
 
             <Tabs defaultValue="fruit-types" className="w-full">
