@@ -226,9 +226,10 @@ namespace ShakyFruits.API.Controllers
                 {
                     FruitAssetId = request.FruitAssetId,
                     ReferenceVideoId = request.ReferenceVideoId,
-                    IsRecreate = false,
-                    TargetUrl = null,
-                    // YENİ: Tek/Çok meyve mantığını kendi içinden çekiyor
+
+                    IsRecreate = request.IsRecreate, // <-- Artık sabit false değil, UI'dan geliyor
+                    TargetUrl = request.TargetUrl,   // <-- UI'dan geliyor
+
                     AppliedPrompt = fruitAsset.GetAppliedFixPrompt(),
                     TargetModel = "Bilinmiyor (Geçmiş Veri)",
                     TargetResolution = "Bilinmiyor",

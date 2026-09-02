@@ -18,5 +18,8 @@ namespace ShakyFruits.API.DTOs
         public string? PostUrl { get; set; } // TikTok Linki (Kazıyıcı buraya gidecek)
         public DateTime? PublishedAt { get; set; }
         public SocialPlatform Platform { get; set; } = SocialPlatform.TikTok;
+
+        public bool IsRecreate { get; set; }
+        public string? TargetUrl { get; set; } // Recreate yapıldıysa kaynak URL (Opsiyonel)
     }
 }

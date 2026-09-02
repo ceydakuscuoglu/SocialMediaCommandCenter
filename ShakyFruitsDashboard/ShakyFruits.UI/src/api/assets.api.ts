@@ -54,6 +54,8 @@ export interface AddHistoricalVideoRequest {
     postUrl?: string;
     publishedAt?: string | null;
     platform?: number;
+    isRecreate: boolean;
+    targetUrl?: string;
 }
 
 // --- PUT (GÜNCELLEME) İSTEKLERİ ---

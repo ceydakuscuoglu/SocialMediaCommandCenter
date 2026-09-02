@@ -1,158 +1,180 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { addHistoricalVideo, fetchFruitAssets, fetchReferenceVideos } from "@/api/assets.api";
-import {
-    Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-    Select, SelectContent, SelectItem, SelectTrigger, SelectValue
-} from "@/components/ui/select";
-import { Loader2, History, Link as LinkIcon } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, History, Link as LinkIcon, Sparkles } from "lucide-react";
 
 export function AddHistoricalVideoModal() {
-    const [open, setOpen] = useState(false);
-    const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const queryClient = useQueryClient();
 
-    const { data: fruits = [] } = useQuery({ queryKey: ["fruit-assets"], queryFn: fetchFruitAssets });
-    const { data: references = [] } = useQuery({ queryKey: ["reference-videos"], queryFn: fetchReferenceVideos });
+  const { data: fruits = [] } = useQuery({ queryKey: ["fruit-assets"], queryFn: fetchFruitAssets });
+  const { data: references = [] } = useQuery({ queryKey: ["reference-videos"], queryFn: fetchReferenceVideos });
 
-    // Form State (prompt silindi)
-    const [fruitId, setFruitId] = useState("");
-    const [refId, setRefId] = useState("none");
-    const [videoPath, setVideoPath] = useState("");
-    const [isPublished, setIsPublished] = useState(false);
-    const [postUrl, setPostUrl] = useState("");
-    const [publishedDate, setPublishedDate] = useState("");
+  const [fruitId, setFruitId] = useState("");
+  const [refId, setRefId] = useState("none");
+  const [videoPath, setVideoPath] = useState("");
+  
+  // YENİ: Recreate State'leri
+  const [isRecreate, setIsRecreate] = useState(false);
+  const [targetUrl, setTargetUrl] = useState("");
 
-    const historicalMutation = useMutation({
-        mutationFn: addHistoricalVideo,
-        onSuccess: (data) => {
-            queryClient.invalidateQueries({ queryKey: ["jobs"] });
-            queryClient.invalidateQueries({ queryKey: ["published-videos-latest"] });
-            setOpen(false);
-            resetForm();
-            // YENİ: Backend'in otomatik ürettiği prompt'u konsolda veya alertte görebilirsin
-            console.log("Sisteme eklenen video:", data);
-        },
-        onError: (err) => alert(err.message)
+  const [isPublished, setIsPublished] = useState(false);
+  const [postUrl, setPostUrl] = useState("");
+  const [publishedDate, setPublishedDate] = useState("");
+
+  const historicalMutation = useMutation({
+    mutationFn: addHistoricalVideo,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["published-videos-latest"] });
+      setOpen(false);
+      resetForm();
+      console.log("Sisteme eklenen video:", data);
+    },
+    onError: (err) => alert(err.message)
+  });
+
+  const resetForm = () => {
+    setFruitId(""); setRefId("none"); setVideoPath(""); 
+    setIsRecreate(false); setTargetUrl(""); // Reset eklendi
+    setIsPublished(false); setPostUrl(""); setPublishedDate("");
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fruitId) return alert("Lütfen bir meyve karakteri (Fruit Asset) seçin.");
+    if (!videoPath) return alert("Lütfen bilgisayarınızdaki video yolunu girin.");
+    if (isPublished && !postUrl) return alert("Yayınlanmış videolar için TikTok linki zorunludur.");
+
+    historicalMutation.mutate({
+      fruitAssetId: parseInt(fruitId),
+      referenceVideoId: refId !== "none" ? parseInt(refId) : null,
+      outputVideoPath: videoPath,
+      isRecreate, // Eklendi
+      targetUrl: isRecreate ? targetUrl : undefined, // Eklendi
+      isPublished,
+      postUrl: isPublished ? postUrl : undefined,
+      publishedAt: isPublished && publishedDate ? new Date(publishedDate).toISOString() : null
     });
+  };
 
-    const resetForm = () => {
-        setFruitId(""); setRefId("none"); setVideoPath("");
-        setIsPublished(false); setPostUrl(""); setPublishedDate("");
-    };
+  return (
+    <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) resetForm(); }}>
+      <DialogTrigger asChild>
+        <Button variant="secondary" className="gap-2 shadow-sm border border-border/50">
+          <History className="w-4 h-4" />
+          Import Legacy Video
+        </Button>
+      </DialogTrigger>
+      
+      <DialogContent className="sm:max-w-[500px] bg-card text-foreground max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Import Legacy Video</DialogTitle>
+          <DialogDescription>
+            Bypass the generation queue and directly register an existing video to the system.
+          </DialogDescription>
+        </DialogHeader>
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!fruitId) return alert("Lütfen bir meyve karakteri (Fruit Asset) seçin.");
-        if (!videoPath) return alert("Lütfen bilgisayarınızdaki video yolunu girin.");
-        if (isPublished && !postUrl) return alert("Yayınlanmış videolar için TikTok linki zorunludur.");
+        <form onSubmit={handleSubmit} className="space-y-5 mt-4">
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Source Fruit Character <span className="text-destructive">*</span></Label>
+              <Select value={fruitId} onValueChange={setFruitId}>
+                <SelectTrigger><SelectValue placeholder="Select fruit..." /></SelectTrigger>
+                <SelectContent>
+                  {fruits.map(f => <SelectItem key={f.id} value={f.id.toString()}>{f.title}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Dance Reference (Optional)</Label>
+              <Select value={refId} onValueChange={setRefId}>
+                <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None (Unknown)</SelectItem>
+                  {references.map(r => <SelectItem key={r.id} value={r.id.toString()}>{r.danceStyle}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
-        historicalMutation.mutate({
-            fruitAssetId: parseInt(fruitId),
-            referenceVideoId: refId !== "none" ? parseInt(refId) : null,
-            outputVideoPath: videoPath,
-            // appliedPrompt payload'dan çıkarıldı, backend hallediyor.
-            isPublished,
-            postUrl: isPublished ? postUrl : undefined,
-            publishedAt: isPublished && publishedDate ? new Date(publishedDate).toISOString() : null
-        });
-    };
+          <div className="space-y-2">
+            <Label>Local Video Path <span className="text-destructive">*</span></Label>
+            <Input 
+              placeholder="D:\ShakyFruits\Outputs\viral_dans_1.mp4" 
+              value={videoPath} onChange={e => setVideoPath(e.target.value)} 
+            />
+          </div>
 
-    return (
-        <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) resetForm(); }}>
-            <DialogTrigger asChild>
-                <Button variant="secondary" className="gap-2 shadow-sm border border-border/50">
-                    <History className="w-4 h-4" />
-                    Import Legacy Video
-                </Button>
-            </DialogTrigger>
+          {/* YENİ: Recreate Onay Kutusu Alanı */}
+          <div className="border-t border-border/50 pt-4 mt-2">
+            <div className="flex items-center space-x-2 mb-4">
+              <Checkbox id="isRecreate" checked={isRecreate} onCheckedChange={(c) => setIsRecreate(c as boolean)} />
+              <label htmlFor="isRecreate" className="text-sm font-medium leading-none cursor-pointer flex items-center gap-1.5">
+                Generated via Kling <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Recreate
+              </label>
+            </div>
 
-            <DialogContent className="sm:max-w-[500px] bg-card text-foreground max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                    <DialogTitle>Import Legacy Video</DialogTitle>
-                    <DialogDescription>
-                        Bypass the generation queue and directly register an existing video to the system.
-                    </DialogDescription>
-                </DialogHeader>
+            {isRecreate && (
+              <div className="space-y-2 mb-6 animate-in fade-in slide-in-from-top-2 duration-300 bg-amber-500/10 p-4 rounded-lg border border-amber-500/20">
+                <Label className="text-amber-700 dark:text-amber-400">Target Bot URL (Optional)</Label>
+                <Input 
+                  placeholder="https://..." 
+                  className="bg-background"
+                  value={targetUrl} onChange={e => setTargetUrl(e.target.value)} 
+                />
+                <p className="text-[10px] text-amber-600/80 dark:text-amber-400/80">The original link used to recreate this video.</p>
+              </div>
+            )}
+          </div>
 
-                <form onSubmit={handleSubmit} className="space-y-5 mt-4">
+          {/* Publish Onay Kutusu Alanı */}
+          <div className="border-t border-border/50 pt-4 mt-2">
+            <div className="flex items-center space-x-2 mb-4">
+              <Checkbox id="isPublished" checked={isPublished} onCheckedChange={(c) => setIsPublished(c as boolean)} />
+              <label htmlFor="isPublished" className="text-sm font-medium leading-none cursor-pointer">
+                This video is already published on TikTok
+              </label>
+            </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>Source Fruit Character <span className="text-destructive">*</span></Label>
-                            <Select value={fruitId} onValueChange={setFruitId}>
-                                <SelectTrigger><SelectValue placeholder="Select fruit..." /></SelectTrigger>
-                                <SelectContent>
-                                    {fruits.map(f => <SelectItem key={f.id} value={f.id.toString()}>{f.title}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Dance Reference (Optional)</Label>
-                            <Select value={refId} onValueChange={setRefId}>
-                                <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="none">None (Unknown)</SelectItem>
-                                    {references.map(r => <SelectItem key={r.id} value={r.id.toString()}>{r.danceStyle}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
+            {isPublished && (
+              <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300 bg-muted/20 p-4 rounded-lg border border-border/50">
+                <div className="space-y-2">
+                  <Label>TikTok Post URL <span className="text-destructive">*</span></Label>
+                  <div className="relative">
+                    <LinkIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      placeholder="https://www.tiktok.com/@..." 
+                      className="pl-9"
+                      value={postUrl} onChange={e => setPostUrl(e.target.value)} 
+                    />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">Scraper will immediately start tracking this URL.</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Publish Date (Optional)</Label>
+                  <Input 
+                    type="datetime-local" 
+                    value={publishedDate} onChange={e => setPublishedDate(e.target.value)} 
+                  />
+                </div>
+              </div>
+            )}
+          </div>
 
-                    <div className="space-y-2">
-                        <Label>Local Video Path <span className="text-destructive">*</span></Label>
-                        <Input
-                            placeholder="D:\ShakyFruits\Outputs\viral_dans_1.mp4"
-                            value={videoPath} onChange={e => setVideoPath(e.target.value)}
-                        />
-                    </div>
-
-                    {/* Applied Prompt input alanı tamamen silindi */}
-
-                    <div className="border-t border-border/50 pt-4 mt-2">
-                        <div className="flex items-center space-x-2 mb-4">
-                            <Checkbox id="isPublished" checked={isPublished} onCheckedChange={(c) => setIsPublished(c as boolean)} />
-                            <label htmlFor="isPublished" className="text-sm font-medium leading-none cursor-pointer">
-                                This video is already published on TikTok
-                            </label>
-                        </div>
-
-                        {isPublished && (
-                            <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300 bg-muted/20 p-4 rounded-lg border border-border/50">
-                                <div className="space-y-2">
-                                    <Label>TikTok Post URL <span className="text-destructive">*</span></Label>
-                                    <div className="relative">
-                                        <LinkIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                        <Input
-                                            placeholder="https://www.tiktok.com/@..."
-                                            className="pl-9"
-                                            value={postUrl} onChange={e => setPostUrl(e.target.value)}
-                                        />
-                                    </div>
-                                    <p className="text-[10px] text-muted-foreground">Scraper will immediately start tracking this URL.</p>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label>Publish Date (Optional)</Label>
-                                    <Input
-                                        type="datetime-local"
-                                        value={publishedDate} onChange={e => setPublishedDate(e.target.value)}
-                                    />
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    <Button type="submit" className="w-full" disabled={historicalMutation.isPending}>
-                        {historicalMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Legacy Video"}
-                    </Button>
-                </form>
-            </DialogContent>
-        </Dialog>
-    );
+          <Button type="submit" className="w-full" disabled={historicalMutation.isPending}>
+            {historicalMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Legacy Video"}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
 }
