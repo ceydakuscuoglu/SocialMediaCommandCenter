@@ -56,6 +56,36 @@ export interface AddHistoricalVideoRequest {
     platform?: number;
 }
 
+// --- PUT (GÜNCELLEME) İSTEKLERİ ---
+export const updateFruitType = async ({ id, data }: { id: number, data: CreateFruitTypeRequest }) => {
+    const res = await fetch(`${API_BASE_URL}/fruit-types/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error("Meyve türü güncellenemedi.");
+    return res.json();
+};
+
+export const updateFruitAsset = async ({ id, data }: { id: number, data: CreateFruitAssetRequest }) => {
+    const res = await fetch(`${API_BASE_URL}/fruits/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error("Meyve görseli güncellenemedi.");
+    return res.json();
+};
+
+export const updateReferenceVideo = async ({ id, data }: { id: number, data: CreateReferenceVideoRequest }) => {
+    const res = await fetch(`${API_BASE_URL}/reference-videos/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error("Referans video güncellenemedi.");
+    return res.json();
+};
 
 // --- API CALLS ---
 export const addFruitType = async (data: CreateFruitTypeRequest) => {

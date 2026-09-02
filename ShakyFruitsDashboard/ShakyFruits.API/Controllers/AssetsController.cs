@@ -273,5 +273,101 @@ namespace ShakyFruits.API.Controllers
                 return StatusCode(500, new { Message = "Geçmiş video eklenirken hata oluştu.", Error = ex.Message });
             }
         }
+
+        // 1. MEYVE GÖRSELİNİ GÜNCELLE
+        [HttpPut("fruits/{id}")]
+        public async Task<IActionResult> UpdateFruitAsset(int id, [FromBody] UpdateFruitAssetRequestDto request)
+        {
+            // Include ile var olan meyve türlerini de çekiyoruz ki güncelleyebilelim
+            var existingAsset = await _context.FruitAssets
+                .Include(f => f.FruitsInImage)
+                .FirstOrDefaultAsync(f => f.Id == id);
+
+            if (existingAsset == null)
+                return NotFound(new { Message = "Güncellenmek istenen meyve kaydı bulunamadı." });
+
+            // Yeni seçilen meyve türlerini bul
+            var updatedFruitTypes = await _context.FruitTypes
+                .Where(f => request.FruitTypeIds.Contains(f.Id))
+                .ToListAsync();
+
+            existingAsset.Title = request.Title;
+            existingAsset.ImagePath = request.ImagePath;
+            existingAsset.IsMultipleFruits = request.IsMultipleFruits;
+
+            // Çoka-çok ilişkiyi güncelle (Eskileri temizle, yenileri ekle)
+            existingAsset.FruitsInImage.Clear();
+            foreach (var type in updatedFruitTypes)
+            {
+                existingAsset.FruitsInImage.Add(type);
+            }
+
+            await _context.SaveChangesAsync();
+
+            // Döngü kırıcı formatta geri dön
+            return Ok(new
+            {
+                id = existingAsset.Id,
+                title = existingAsset.Title,
+                imagePath = existingAsset.ImagePath,
+                isMultipleFruits = existingAsset.IsMultipleFruits,
+                fruits = existingAsset.FruitsInImage.Select(f => new
+                {
+                    id = f.Id,
+                    name = f.Name
+                }).ToList()
+            });
+        }
+
+        // 2. REFERANS VİDEOYU GÜNCELLE
+        [HttpPut("reference-videos/{id}")]
+        public async Task<IActionResult> UpdateReferenceVideo(int id, [FromBody] UpdateReferenceVideoRequestDto request)
+        {
+            var existingVideo = await _context.ReferenceVideos.FindAsync(id);
+            if (existingVideo == null)
+                return NotFound(new { Message = "Güncellenmek istenen referans video bulunamadı." });
+
+            existingVideo.DanceStyle = request.DanceStyle;
+            existingVideo.SourceType = request.SourceType;
+            existingVideo.VideoPath = request.SourceType == ReferenceSourceType.LocalUpload ? request.VideoPath : null;
+            existingVideo.KlingSourceUrlOrId = request.SourceType == ReferenceSourceType.KlingRecreate ? request.KlingSourceUrlOrId : null;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                id = existingVideo.Id,
+                danceStyle = existingVideo.DanceStyle,
+                sourceType = existingVideo.SourceType.ToString(),
+                videoPath = existingVideo.VideoPath,
+                klingSourceUrlOrId = existingVideo.KlingSourceUrlOrId
+            });
+        }
+
+        // 3. MEYVE TÜRÜNÜ (SÖZLÜK) GÜNCELLE
+        [HttpPut("fruit-types/{id}")]
+        public async Task<IActionResult> UpdateFruitType(int id, [FromBody] UpdateFruitTypeRequestDto request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Name))
+                return BadRequest("Meyve adı boş olamaz.");
+
+            var existingType = await _context.FruitTypes.FindAsync(id);
+            if (existingType == null)
+                return NotFound(new { Message = "Güncellenmek istenen meyve türü bulunamadı." });
+
+            // İsim değiştirilirken, aynı isimde BAŞKA bir kayıt var mı diye kontrol et
+            var exists = await _context.FruitTypes.AnyAsync(f => f.Id != id && f.Name.ToLower() == request.Name.ToLower());
+            if (exists)
+                return BadRequest($"'{request.Name}' türü sistemde zaten kayıtlı.");
+
+            existingType.Name = request.Name;
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                id = existingType.Id,
+                name = existingType.Name
+            });
+        }
     }
 }

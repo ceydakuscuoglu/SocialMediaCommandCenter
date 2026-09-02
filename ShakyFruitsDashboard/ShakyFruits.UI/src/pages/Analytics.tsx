@@ -152,8 +152,8 @@ export function Analytics() {
       {/* Alt Kısım: Grafik ve İşlem Alanı */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
 
-        {/* Sol Taraf (2 Kolon Genişliğinde): Performans Grafiği */}
-        <div className="lg:col-span-2 min-h-[384px]">
+        {/* Sol Taraf (3 Kolon Genişliğinde): Performans Grafiği */}
+        <div className="lg:col-span-3 min-h-[384px]">
           <VideoPerformanceChart
             historyData={topPerformingVideo?.analyticsHistory || []}
             title={`TikTok Growth Trend (Top Video: #${topPerformingVideo?.videoGenerationId || ''})`}
