@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ShakyFruits.API.Workers;
+using ShakyFruits.Core.Interfaces;
 using ShakyFruits.Core.Services;
 using ShakyFruits.Data;
 using ShakyFruits.Services;
@@ -19,6 +20,12 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod();
     });
 });
+
+// Gemini servisinin HTTP istekleri yapabilmesi için HttpClient'ı kaydediyoruz
+builder.Services.AddHttpClient<IAiCaptionService, GeminiCaptionService>();
+
+// Controller IAiCaptionService istediğinde GeminiCaptionService sınıfını verecek
+builder.Services.AddScoped<IAiCaptionService, GeminiCaptionService>();
 
 // 1. Veritabanı Bağlantısı
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
