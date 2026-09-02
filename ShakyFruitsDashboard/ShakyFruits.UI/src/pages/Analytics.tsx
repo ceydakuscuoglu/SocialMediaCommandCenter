@@ -36,6 +36,15 @@ export function Analytics() {
     queryFn: fetchPublishedVideos,
   });
 
+  const topPerformingVideo = publishedVideos?.reduce((prev, current) => {
+    // Her videonun geçmişindeki en son (en güncel) izlenme sayısını al
+    const prevViews = prev.analyticsHistory?.[prev.analyticsHistory.length - 1]?.views || 0;
+    const currViews = current.analyticsHistory?.[current.analyticsHistory.length - 1]?.views || 0;
+
+    // Hangisi daha büyükse onu seç
+    return currViews > prevViews ? current : prev;
+  }, publishedVideos?.[0]);
+
   // En popüler meyve ve dansı hesaplamak için güvenli kontroller
   const topFruit = stats?.fruitStats?.sort((a, b) => b.usageCount - a.usageCount)[0];
   const topDance = stats?.danceStats?.sort((a, b) => b.usageCount - a.usageCount)[0];
@@ -146,26 +155,9 @@ export function Analytics() {
         {/* Sol Taraf (2 Kolon Genişliğinde): Performans Grafiği */}
         <div className="lg:col-span-2 min-h-[384px]">
           <VideoPerformanceChart
-            historyData={publishedVideos?.[0]?.analyticsHistory || []}
-            title="TikTok Growth Trend (Top Video)"
+            historyData={topPerformingVideo?.analyticsHistory || []}
+            title={`TikTok Growth Trend (Top Video: #${topPerformingVideo?.videoGenerationId || ''})`}
           />
-        </div>
-
-        {/* Sağ Taraf (1 Kolon Genişliğinde): Scraper ve Video Ekleme Modalları */}
-        <div className="border border-dashed border-border/50 bg-card/30 rounded-lg h-96 flex flex-col items-center justify-center p-6 text-center space-y-6 shadow-sm">
-          <div className="space-y-2">
-            <h3 className="font-semibold text-foreground text-lg">Playwright Engine</h3>
-            <p className="text-sm text-muted-foreground">
-              Add a new TikTok URL to your tracking list or run a live test of the scraper.
-            </p>
-          </div>
-
-          <div className="flex flex-col w-full max-w-xs gap-3">
-            {/* Hem Video Ekleme hem de Test Modalı alt alta */}
-            <PublishVideoModal />
-            <ScraperTestModal />
-          </div>
-
         </div>
       </div>
 
