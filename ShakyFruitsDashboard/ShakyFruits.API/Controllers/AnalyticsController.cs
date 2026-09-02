@@ -1,9 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using ShakyFruits.API.DTOs;
+using ShakyFruits.API.DTOs.ShakyFruits.API.DTOs;
+using ShakyFruits.Core.Entities;
 using ShakyFruits.Data; // DbContext'in olduğu namespace'i eklemeyi unutma
 using ShakyFruits.Services; // Senin servis namespace'ine göre ayarla
-using ShakyFruits.API.DTOs;
-using ShakyFruits.Core.Entities;
 
 namespace ShakyFruits.API.Controllers
 {
@@ -408,6 +409,362 @@ namespace ShakyFruits.API.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { Message = "Zorla yenileme başarısız.", Error = ex.Message });
+            }
+        }
+
+        [HttpGet("leaderboards")]
+        public async Task<IActionResult> GetLeaderboards()
+        {
+            // 1. Önce sadece ihtiyacımız olan güncel metrikleri ve etiketleri çekerek RAM'i koruyoruz
+            var videosWithStats = await _context.PublishedVideos
+                .Where(v => v.AnalyticsHistory.Any())
+                .Select(v => new
+                {
+                    Fruits = v.VideoGeneration.FruitAsset.FruitsInImage.Select(f => f.Name).ToList(),
+                    DanceStyle = v.VideoGeneration.ReferenceVideo != null ? v.VideoGeneration.ReferenceVideo.DanceStyle : "Bilinmiyor",
+                    LatestViews = v.AnalyticsHistory.OrderByDescending(a => a.RecordedAt).FirstOrDefault().Views,
+                    LatestLikes = v.AnalyticsHistory.OrderByDescending(a => a.RecordedAt).FirstOrDefault().Likes
+                })
+                .ToListAsync();
+
+            // 2. MEYVE ŞAMPİYONLAR LİGİ (SelectMany ile çoka-çok ilişkiyi düzleştirip grupluyoruz)
+            var fruitLeaderboard = videosWithStats
+                .SelectMany(v => v.Fruits, (video, fruitName) => new { fruitName, video.LatestViews, video.LatestLikes })
+                .GroupBy(x => x.fruitName)
+                .Select(g => new
+                {
+                    name = g.Key,
+                    videoCount = g.Count(),
+                    averageViews = Math.Round(g.Average(x => x.LatestViews), 0),
+                    averageLikes = Math.Round(g.Average(x => x.LatestLikes), 0)
+                })
+                .OrderByDescending(x => x.averageViews)
+                .Take(10); // Sadece Top 10
+
+            // 3. DANS ŞAMPİYONLAR LİGİ
+            var danceLeaderboard = videosWithStats
+                .Where(v => !string.IsNullOrWhiteSpace(v.DanceStyle) && v.DanceStyle != "Bilinmiyor")
+                .GroupBy(v => v.DanceStyle)
+                .Select(g => new
+                {
+                    name = g.Key,
+                    videoCount = g.Count(),
+                    averageViews = Math.Round(g.Average(v => v.LatestViews), 0),
+                    averageLikes = Math.Round(g.Average(v => v.LatestLikes), 0)
+                })
+                .OrderByDescending(x => x.averageViews)
+                .Take(10);
+
+            return Ok(new
+            {
+                fruitLeaderboard,
+                danceLeaderboard
+            });
+        }
+
+        [HttpGet("solo-vs-group")]
+        public async Task<IActionResult> GetSoloVsGroupAnalytics()
+        {
+            var stats = await _context.PublishedVideos
+                .Where(v => v.AnalyticsHistory.Any())
+                .Select(v => new
+                {
+                    IsMultiple = v.VideoGeneration.FruitAsset.IsMultipleFruits,
+                    LatestViews = v.AnalyticsHistory.OrderByDescending(a => a.RecordedAt).FirstOrDefault().Views,
+                    LatestLikes = v.AnalyticsHistory.OrderByDescending(a => a.RecordedAt).FirstOrDefault().Likes,
+                    LatestShares = v.AnalyticsHistory.OrderByDescending(a => a.RecordedAt).FirstOrDefault().Shares
+                })
+                .ToListAsync();
+
+            var comparison = stats
+                .GroupBy(x => x.IsMultiple)
+                .Select(g => new
+                {
+                    type = g.Key ? "Multiple (Plural Fruit)" : "Single (Singular Fruit)",
+                    videoCount = g.Count(),
+                    totalViews = g.Sum(x => x.LatestViews),
+                    averageViews = Math.Round(g.Average(x => x.LatestViews), 0),
+                    averageLikes = Math.Round(g.Average(x => x.LatestLikes), 0),
+                    averageShares = Math.Round(g.Average(x => x.LatestShares), 0)
+                })
+                .OrderByDescending(x => x.averageViews)
+                .ToList();
+
+            return Ok(comparison);
+        }
+
+        [HttpGet("engagement-metrics")]
+        public async Task<IActionResult> GetEngagementMetrics()
+        {
+            // 1. Videoların sadece gerekli bilgilerini ve en güncel istatistiğini çekiyoruz
+            var videosWithStats = await _context.PublishedVideos
+                .Where(v => v.AnalyticsHistory.Any())
+                .Select(v => new
+                {
+                    videoId = v.Id,
+                    postUrl = v.PostUrl,
+                    // UI'da videoyu tanımak için meyve isimlerini birleştiriyoruz
+                    title = string.Join(" + ", v.VideoGeneration.FruitAsset.FruitsInImage.Select(f => f.Name)),
+                    latestStat = v.AnalyticsHistory.OrderByDescending(a => a.RecordedAt).FirstOrDefault()
+                })
+                .Where(v => v.latestStat.Views > 0) // Sıfıra bölme hatasını (DivideByZero) önlemek için
+                .ToListAsync();
+
+            // 2. Etkileşim ve Viralite Formüllerini Uyguluyoruz
+            var engagementData = videosWithStats.Select(v => new
+            {
+                videoId = v.videoId,
+                title = string.IsNullOrWhiteSpace(v.title) ? "Tekil İçerik" : v.title,
+                url = v.postUrl,
+                views = v.latestStat.Views,
+
+                // Gerçek Etkileşim Oranı (ER) = (Beğeni + Yorum + Paylaşım + Favori) / İzlenme * 100
+                engagementRate = Math.Round((double)(v.latestStat.Likes + v.latestStat.Comments + v.latestStat.Shares + v.latestStat.Favorites) / v.latestStat.Views * 100, 2),
+
+                // Viral Katsayısı (K-Factor) = Paylaşım / İzlenme * 100 (TikTok algoritmasının en sevdiği metrik)
+                viralFactor = Math.Round((double)v.latestStat.Shares / v.latestStat.Views * 100, 2)
+            })
+            .OrderByDescending(v => v.engagementRate)
+            .ToList();
+
+            // 3. Hesap Geneli Ortalamaları (Benchmark için)
+            var accountAverageER = engagementData.Any() ? Math.Round(engagementData.Average(v => v.engagementRate), 2) : 0;
+            var accountAverageViral = engagementData.Any() ? Math.Round(engagementData.Average(v => v.viralFactor), 2) : 0;
+
+            return Ok(new
+            {
+                accountAverages = new
+                {
+                    averageEngagementRate = accountAverageER,
+                    averageViralFactor = accountAverageViral
+                },
+                // Sadece etkileşim oranı en yüksek 10 videoyu döndürüyoruz
+                topEngagingVideos = engagementData.Take(10)
+            });
+        }
+
+        [HttpGet("fruit-combinations")]
+        public async Task<IActionResult> GetFruitCombinationsAnalytics()
+        {
+            try
+            {
+                // 1. Yalnızca çoklu meyve içeren (IsMultipleFruits = true) ve analitiği olan videoları çekiyoruz
+                var videos = await _context.PublishedVideos
+                    .Where(v => v.VideoGeneration.FruitAsset.IsMultipleFruits && v.AnalyticsHistory.Any())
+                    .Select(v => new
+                    {
+                        Fruits = v.VideoGeneration.FruitAsset.FruitsInImage.Select(f => f.Name).ToList(),
+                        LatestStats = v.AnalyticsHistory.OrderByDescending(a => a.RecordedAt).FirstOrDefault()
+                    })
+                    .ToListAsync();
+
+                // 2. Kombinasyonları oluşturup grupluyoruz
+                var combinationStats = videos
+                    .Select(v => new
+                    {
+                        // Meyve isimlerini alfabetik sıraya dizip birleştiriyoruz ki 
+                        // "Elma + Armut" ile "Armut + Elma" farklı kombinasyonlar sayılmasın
+                        CombinationKey = string.Join(" + ", v.Fruits.OrderBy(name => name)),
+                        v.LatestStats
+                    })
+                    .Where(v => v.LatestStats != null)
+                    .GroupBy(x => x.CombinationKey)
+                    .Select(g => new
+                    {
+                        combination = g.Key,
+                        videoCount = g.Count(),
+
+                        totalViews = g.Sum(x => x.LatestStats.Views),
+                        averageViews = Math.Round(g.Average(x => x.LatestStats.Views), 0),
+                        averageLikes = Math.Round(g.Average(x => x.LatestStats.Likes), 0),
+                        averageShares = Math.Round(g.Average(x => x.LatestStats.Shares), 0),
+
+                        // Kombinasyonun ortalama K-Factor (Viralite) değeri
+                        averageViralFactor = Math.Round(g.Average(x => x.LatestStats.Views > 0
+                            ? (double)x.LatestStats.Shares / x.LatestStats.Views * 100
+                            : 0), 2)
+                    })
+                    .OrderByDescending(x => x.averageViews) // En çok izlenen kombinasyonlar üstte
+                    .ToList();
+
+                return Ok(combinationStats);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Kombinasyon analizi getirilirken hata oluştu.", Error = ex.Message });
+            }
+        }
+
+        [HttpGet("lifecycle-insights")]
+        public async Task<IActionResult> GetLifecycleInsights()
+        {
+            // 1. En az 3 farklı güne ait analitik kaydı olan videoları çekiyoruz ki trend (eğilim) ölçebilelim
+            var videos = await _context.PublishedVideos
+                .Include(v => v.AnalyticsHistory)
+                .Include(v => v.VideoGeneration)
+                    .ThenInclude(vg => vg.FruitAsset)
+                        .ThenInclude(fa => fa.FruitsInImage)
+                .Where(v => v.AnalyticsHistory.Count >= 3)
+                .ToListAsync();
+
+            var lateBloomers = new List<object>();
+            var lifespanData = new List<object>();
+
+            foreach (var video in videos)
+            {
+                // Tarihe göre eskiden yeniye sıralı analitik geçmişi
+                var history = video.AnalyticsHistory.OrderBy(a => a.RecordedAt).ToList();
+                var title = string.Join(" + ", video.VideoGeneration.FruitAsset.FruitsInImage.Select(f => f.Name));
+                if (string.IsNullOrWhiteSpace(title)) title = "İsimsiz İçerik";
+
+                // --- 1. VİDEO RAF ÖMRÜ (LIFESPAN) HESAPLAMA ---
+                // Videonun "aktif" sayılması için iki ölçüm arasında en az 100 izlenme artışı olmasını şart koşalım
+                DateTime lastActiveDate = video.PublishedAt;
+
+                for (int i = 1; i < history.Count; i++)
+                {
+                    var dailyViewIncrease = history[i].Views - history[i - 1].Views;
+                    if (dailyViewIncrease > 100) // 100 izlenmeden fazla artış varsa video hala yaşıyordur
+                    {
+                        lastActiveDate = history[i].RecordedAt;
+                    }
+                }
+
+                // Yayınlanma tarihinden, son aktif olduğu tarihe kadar geçen "Aktif Gün Sayısı"
+                var activeDays = (lastActiveDate.Date - video.PublishedAt.Date).TotalDays;
+
+                lifespanData.Add(new
+                {
+                    videoId = video.Id,
+                    title = title,
+                    publishedAt = video.PublishedAt,
+                    lastActiveDate = lastActiveDate,
+                    activeLifespanDays = activeDays > 0 ? activeDays : 1 // En az 1 gün
+                });
+
+                // --- 2. ALGORİTMA DİRİLİŞİ (LATE BLOOMER) TESPİTİ ---
+                // Mantık: İlk 3 günün ortalama izlenme artışı ile son 3 günün ortalama izlenme artışını kıyasla.
+                // Eğer aradan zaman geçmesine rağmen son günlerdeki ivme, ilk günlerden yüksekse video algoritma dirilişi yaşıyordur!
+
+                if (history.Count >= 5) // Bu hesap için biraz daha uzun bir geçmiş lazım
+                {
+                    var firstDaysViews = history[2].Views - history[0].Views; // İlk ölçümden 3. ölçüme kadar olan artış
+
+                    var latestIndex = history.Count - 1;
+                    var recentDaysViews = history[latestIndex].Views - history[latestIndex - 2].Views; // Son 3 ölçümdeki artış
+
+                    // Eğer son 3 günkü artış, ilk 3 günkü artıştan %50 daha fazlaysa (1.5 katı) ve anlamlı bir rakamsa
+                    if (recentDaysViews > (firstDaysViews * 1.5) && recentDaysViews > 1000)
+                    {
+                        lateBloomers.Add(new
+                        {
+                            videoId = video.Id,
+                            title = title,
+                            url = video.PostUrl,
+                            firstDaysIncrease = firstDaysViews,
+                            recentDaysIncrease = recentDaysViews,
+                            momentumMultiplier = Math.Round((double)recentDaysViews / (firstDaysViews == 0 ? 1 : firstDaysViews), 1)
+                        });
+                    }
+                }
+            }
+
+            return Ok(new
+            {
+                // En uzun süre hayatta kalan (izlenmeye devam eden) videoları üstte ver
+                lifespanLeaderboard = lifespanData.OrderByDescending(x => (double)x.GetType().GetProperty("activeLifespanDays").GetValue(x, null)).Take(10),
+
+                // Aniden patlayan, "Geç Açan Çiçekleri" listele
+                lateBloomers = lateBloomers.OrderByDescending(x => (double)x.GetType().GetProperty("momentumMultiplier").GetValue(x, null)).ToList()
+            });
+        }
+        [HttpPost("golden-hours-heatmap")]
+        public async Task<IActionResult> GenerateGoldenHoursHeatmap(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("Lütfen geçerli bir CSV dosyası yükleyin.");
+
+            if (!file.FileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
+                return BadRequest("Sadece .csv uzantılı TikTok Activity dosyaları desteklenir.");
+
+            var records = new List<FollowerActivityRecord>();
+
+            try
+            {
+                // 1. Dosyayı diske kaydetmeden direkt RAM (Stream) üzerinden okuyoruz
+                using (var stream = new StreamReader(file.OpenReadStream()))
+                {
+                    // İlk satırı (Başlıkları - Header) okuyup atlıyoruz
+                    await stream.ReadLineAsync();
+
+                    while (!stream.EndOfStream)
+                    {
+                        var line = await stream.ReadLineAsync();
+                        if (string.IsNullOrWhiteSpace(line)) continue;
+
+                        // CSV sütunlarını virgülle ayır (Format genelde: Tarih, Saat, Aktif Takipçi)
+                        var columns = line.Split(',');
+
+                        if (columns.Length >= 3)
+                        {
+                            records.Add(new FollowerActivityRecord
+                            {
+                                Date = columns[0].Trim(),
+                                Hour = columns[1].Trim(),
+                                // Eğer sayı içinde tırnak varsa temizleyip int'e çeviriyoruz
+                                ActiveFollowers = int.TryParse(columns[2].Replace("\"", "").Trim(), out int active) ? active : 0
+                            });
+                        }
+                    }
+                }
+
+                if (records.Count == 0)
+                    return BadRequest("CSV dosyası okunamadı veya içi boş.");
+
+                // 2. ISI HARİTASI (HEATMAP) ANALİZİ
+                // Aynı saat dilimlerini (Örn: 15:00) tüm günler için gruplayıp "Ortalama" aktif kişi sayısını buluyoruz
+                // 2. ISI HARİTASI (HEATMAP) ANALİZİ
+                var heatmapData = records
+                    // Gelen saat verisindeki (Örn: "\"16\"") gereksiz tırnakları temizliyoruz
+                    .GroupBy(r => r.Hour.Replace("\"", "").Trim())
+                    .Select(g => new
+                    {
+                        hour = g.Key,
+                        averageActiveFollowers = Math.Round(g.Average(r => r.ActiveFollowers), 0),
+                        totalActiveInPeriod = g.Sum(r => r.ActiveFollowers)
+                    })
+                    // En aktif (kalabalık) saatleri en üste dizecek şekilde sıralıyoruz
+                    .OrderByDescending(x => x.averageActiveFollowers)
+                    .ToList();
+
+                // 3. SÖRF STRATEJİSİ (Altın Saat Hesaplaması)
+                var peakHourData = heatmapData.FirstOrDefault();
+
+                int peakHour = 0;
+                int recommendedHour = 0;
+
+                if (peakHourData != null && int.TryParse(peakHourData.hour, out peakHour))
+                {
+                    // Zirveden 2 saat öncesini hesapla (Gece 00:00 geçişleri için +24 ve %24 kullanıyoruz)
+                    recommendedHour = (peakHour - 2 + 24) % 24;
+                }
+
+                return Ok(new
+                {
+                    message = "Isı haritası ve sörf stratejisi başarıyla oluşturuldu.",
+                    goldenHour = new
+                    {
+                        peakTime = $"{peakHour}:00",
+                        recommendedPostingTime = $"{recommendedHour}:00",
+                        expectedAudienceAtPeak = peakHourData?.averageActiveFollowers,
+                        recommendation = $"Zirve saatiniz {peakHour}:00. Ancak TikTok algoritmasının videonuzu test edip ana kitleye (For You) ulaştırması için dalga kabarmadan önce, yani {recommendedHour}:00 civarında paylaşım yapmanız maksimum ivmeyi (Sörf Etkisi) getirecektir."
+                    },
+                    heatmap = heatmapData // Tablo/Grafik çizimi için tam liste
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "CSV işlenirken bir hata oluştu.", Error = ex.Message });
             }
         }
     }
