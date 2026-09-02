@@ -83,6 +83,102 @@ export interface PublishedVideoLatest {
   latestStats: VideoStatsSnapshot | null;
 }
 
+export interface LeaderboardItem {
+  name: string;
+  videoCount: number;
+  averageViews: number;
+  averageLikes: number;
+}
+
+export interface SoloVsGroupStats {
+  type: string;
+  videoCount: number;
+  totalViews: number;
+  averageViews: number;
+  averageLikes: number;
+  averageShares: number;
+}
+
+export interface EngagementVideo {
+  videoId: number;
+  title: string;
+  url: string;
+  views: number;
+  engagementRate: number;
+  viralFactor: number;
+}
+
+export interface FruitCombination {
+  combination: string;
+  videoCount: number;
+  totalViews: number;
+  averageViews: number;
+  averageLikes: number;
+  averageShares: number;
+  averageViralFactor: number;
+}
+
+export interface LateBloomer {
+  videoId: number;
+  title: string;
+  url: string;
+  firstDaysIncrease: number;
+  recentDaysIncrease: number;
+  momentumMultiplier: number;
+}
+
+export interface LifespanItem {
+  videoId: number;
+  title: string;
+  publishedAt: string;
+  lastActiveDate: string;
+  activeLifespanDays: number;
+}
+
+// --- GET İSTEKLERİ ---
+export const fetchLeaderboards = async (): Promise<{ fruitLeaderboard: LeaderboardItem[], danceLeaderboard: LeaderboardItem[] }> => {
+  const res = await fetch(`${API_BASE_URL}/leaderboards`);
+  if (!res.ok) throw new Error("Liderlik tabloları alınamadı.");
+  return res.json();
+};
+
+export const fetchSoloVsGroup = async (): Promise<SoloVsGroupStats[]> => {
+  const res = await fetch(`${API_BASE_URL}/solo-vs-group`);
+  if (!res.ok) throw new Error("Solo vs Grup verileri alınamadı.");
+  return res.json();
+};
+
+export const fetchEngagementMetrics = async (): Promise<{ accountAverages: any, topEngagingVideos: EngagementVideo[] }> => {
+  const res = await fetch(`${API_BASE_URL}/engagement-metrics`);
+  if (!res.ok) throw new Error("Etkileşim metrikleri alınamadı.");
+  return res.json();
+};
+
+export const fetchFruitCombinations = async (): Promise<FruitCombination[]> => {
+  const res = await fetch(`${API_BASE_URL}/fruit-combinations`);
+  if (!res.ok) throw new Error("Kombinasyon analizi alınamadı.");
+  return res.json();
+};
+
+export const fetchLifecycleInsights = async (): Promise<{ lifespanLeaderboard: LifespanItem[], lateBloomers: LateBloomer[] }> => {
+  const res = await fetch(`${API_BASE_URL}/lifecycle-insights`);
+  if (!res.ok) throw new Error("Yaşam döngüsü içgörüleri alınamadı.");
+  return res.json();
+};
+
+// --- POST İSTEĞİ (CSV YÜKLEME) ---
+export const generateGoldenHours = async (file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch(`${API_BASE_URL}/golden-hours-heatmap`, {
+    method: "POST",
+    body: formData,
+  });
+  if (!res.ok) throw new Error("Isı haritası oluşturulamadı.");
+  return res.json();
+};
+
 // --- API SERVICES ---
 
 // Backend portunu (örn: 5290) kendi sistemine göre güncelle

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Clapperboard, BarChart3, ListVideo, LayoutDashboard } from "lucide-react";
+import { Clapperboard, BarChart3, ListVideo, LayoutDashboard, Layers, BrainCircuit } from "lucide-react";
 import { NewJobDialog } from "@/components/jobs/NewJobDialog";
 import { Button } from "@/components/ui/button";
 
@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Dashboard } from "@/pages/Dashboard";
 import { Pipeline } from "@/pages/Pipeline";
 import { Analytics } from "@/pages/Analytics";
-import { Layers } from "lucide-react"; // İkonu ekle
-import { Assets } from "@/pages/Assets"; // Yeni sayfayı ekle
+import { Assets } from "@/pages/Assets";
+import { Strategy } from "@/pages/Strategy"; // Yeni strateji sayfası
 
 function App() {
-  const [activeTab, setActiveTab] = useState<"dashboard" | "pipeline" | "analytics" | "assets">("dashboard");
+  // 1. STATE GÜNCELLEMESİ: "strategy" eklendi
+  const [activeTab, setActiveTab] = useState<"dashboard" | "pipeline" | "analytics" | "assets" | "strategy">("dashboard");
 
   return (
     <div className="min-h-screen bg-background p-8 text-foreground font-sans">
@@ -31,8 +32,8 @@ function App() {
           Kling AI Video Automation & Content Management
         </p>
 
-        {/* 3'LÜ MENÜ SİSTEMİ */}
-        <div className="flex items-center gap-2 mt-4 border-b border-border/40 pb-4">
+        {/* 5'Lİ MENÜ SİSTEMİ */}
+        <div className="flex flex-wrap items-center gap-2 mt-4 border-b border-border/40 pb-4">
           <Button
             variant={activeTab === "dashboard" ? "default" : "ghost"}
             onClick={() => setActiveTab("dashboard")}
@@ -55,8 +56,19 @@ function App() {
             className="gap-2"
           >
             <BarChart3 className="w-4 h-4" />
-            Analytics & Insights
+            Performance
           </Button>
+
+          {/* YENİ: STRATEJİ BUTONU */}
+          <Button
+            variant={activeTab === "strategy" ? "default" : "ghost"}
+            onClick={() => setActiveTab("strategy")}
+            className="gap-2"
+          >
+            <BrainCircuit className="w-4 h-4" />
+            Strategy & BI
+          </Button>
+
           <Button
             variant={activeTab === "assets" ? "default" : "ghost"}
             onClick={() => setActiveTab("assets")}
@@ -73,6 +85,7 @@ function App() {
         {activeTab === "dashboard" && <Dashboard />}
         {activeTab === "pipeline" && <Pipeline />}
         {activeTab === "analytics" && <Analytics />}
+        {activeTab === "strategy" && <Strategy />} {/* YENİ EKLENDİ */}
         {activeTab === "assets" && <Assets />}
       </div>
 

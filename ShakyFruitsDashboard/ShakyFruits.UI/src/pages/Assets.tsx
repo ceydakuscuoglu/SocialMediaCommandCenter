@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Apple, Image as ImageIcon, Film, Edit2, X } from "lucide-react";
+import { Loader2, Apple, Image as ImageIcon, Film, Edit2, X, Layers } from "lucide-react";
 
 export function Assets() {
     const queryClient = useQueryClient();
@@ -96,10 +96,16 @@ export function Assets() {
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h2 className="text-2xl font-semibold tracking-tight">Asset Library</h2>
-                    <p className="text-muted-foreground mt-1">Manage raw materials for Kling AI generations.</p>
+                <div className="flex flex-col gap-1">
+                    <h2 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+                        <Layers className="w-6 h-6 text-primary" />
+                        Asset Library
+                    </h2>
+                    <p className="text-muted-foreground">
+                        Manage raw materials for Kling AI generations including tags, characters, and dances.
+                    </p>
                 </div>
+                {/* Legacy Video Import Modal vs... */}
                 <AddHistoricalVideoModal />
             </div>
 

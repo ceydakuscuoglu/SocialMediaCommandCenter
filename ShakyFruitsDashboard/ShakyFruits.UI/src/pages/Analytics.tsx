@@ -2,7 +2,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchInternalStats, fetchAllVideosLatestStats, fetchPublishedVideos } from "@/api/analytics.api";
 import { VideoPerformanceChart } from "@/components/analytics/VideoPerformanceChart";
-import { ScraperTestModal } from "@/components/analytics/ScraperTestModal";
 import { PublishVideoModal } from "@/components/analytics/PublishVideoModal";
 import { PublishedVideosTable } from "@/components/analytics/PublishedVideosTable"; // YENİ IMPORT
 import {
@@ -16,7 +15,8 @@ import {
   Apple,
   Music,
   Video,
-  Loader2
+  Loader2,
+  BarChart3
 } from "lucide-react";
 
 export function Analytics() {
@@ -50,10 +50,13 @@ export function Analytics() {
   const topDance = stats?.danceStats?.sort((a, b) => b.usageCount - a.usageCount)[0];
 
   return (
-    <div className="p-8 min-h-screen bg-background text-foreground space-y-8 animate-in fade-in duration-500">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Analytics & Insights</h1>
-        <p className="text-muted-foreground mt-2">
+    <div className="space-y-6 animate-in fade-in duration-300">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+          <BarChart3 className="w-6 h-6 text-primary" />
+          Performance
+        </h2>
+        <p className="text-muted-foreground">
           Monitor your TikTok performance, audience engagement, and ShakyFruits generation trends.
         </p>
       </div>
@@ -150,8 +153,7 @@ export function Analytics() {
       )}
 
       {/* Alt Kısım: Grafik ve İşlem Alanı */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
-
+      <div className="grid grid-cols-1 gap-6 mt-8">
         {/* Sol Taraf (3 Kolon Genişliğinde): Performans Grafiği */}
         <div className="lg:col-span-3 min-h-[384px]">
           <VideoPerformanceChart
@@ -160,7 +162,6 @@ export function Analytics() {
           />
         </div>
       </div>
-
       {/* Adım D: Yayınlanan Videolar Tablosu */}
       <div className="mt-8 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
