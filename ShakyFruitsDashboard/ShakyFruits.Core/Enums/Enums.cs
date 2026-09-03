@@ -24,4 +24,12 @@ namespace ShakyFruits.Core.Enums
         Instagram = 2,
         YouTube = 3
     }
+
+    public enum VideoStatus
+    {
+        Draft = 0,
+        Ready = 1,
+        Published = 2,
+        Failed = 3
+    }
 }

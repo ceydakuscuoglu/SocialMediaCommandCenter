@@ -26,6 +26,7 @@ builder.Services.AddHttpClient<IAiCaptionService, GeminiCaptionService>();
 
 // Controller IAiCaptionService istediğinde GeminiCaptionService sınıfını verecek
 builder.Services.AddScoped<IAiCaptionService, GeminiCaptionService>();
+builder.Services.AddScoped<IVideoUploaderService, PlaywrightVideoUploaderService>();
 
 // 1. Veritabanı Bağlantısı
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
