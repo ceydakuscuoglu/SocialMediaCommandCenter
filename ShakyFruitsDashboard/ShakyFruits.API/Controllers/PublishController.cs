@@ -6,6 +6,7 @@ using ShakyFruits.Core.Interfaces;
 using ShakyFruits.Data; // Kendi DbContext namespace'ini buraya ekle
 using System;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 
 namespace ShakyFruits.API.Controllers
 {
@@ -25,21 +26,29 @@ namespace ShakyFruits.API.Controllers
         [HttpPost("publish-video")]
         public async Task<IActionResult> PublishVideo([FromBody] PublishRequestDto request)
         {
-            // 1. Üretilmiş videoyu (VideoGeneration) buluyoruz
-            var generation = await _context.VideoGenerations.FindAsync(request.VideoGenerationId);
+            // 1. Üretilmiş videoyu (VideoGeneration) ve ona bağlı Orijinal Fotoğrafı (FruitAsset) birlikte çekiyoruz
+            var generation = await _context.VideoGenerations
+                .Include(v => v.FruitAsset) // Entity Framework'e ilişkili tabloyu da getirmesini söylüyoruz
+                .FirstOrDefaultAsync(v => v.Id == request.VideoGenerationId);
 
             if (generation == null)
             {
                 return NotFound(new { message = "Veritabanında böyle bir üretilmiş video bulunamadı." });
             }
 
-            // 2. Playwright ile Yükleme İşlemini Başlat
-            bool success = await _uploaderService.UploadVideoAsync(
-                request.VideoPath,       // veya doğrudan generation.OutputVideoPath
-                request.Caption,         // veya doğrudan generation.AiGeneratedCaption
-                request.Platform,
-                request.CoverImagePath);
+            // 2. OTOMATİK KAPAK FOTOĞRAFI
+            // FruitAsset tablosunda orijinal resmin yolunu tutan özelliğin adı neyse (örneğin ImagePath veya FilePath) onu yaz.
+            string autoCoverPath = generation.FruitAsset.ImagePath;
 
+            // İstersen dışarıdan gönderilen DTO'daki video yolunu da generation.OutputVideoPath ile değiştirebilirsin
+            string videoToUpload = request.VideoPath ?? generation.OutputVideoPath;
+
+            // 3. Playwright ile Yükleme İşlemini Başlat
+            bool success = await _uploaderService.UploadVideoAsync(
+                videoToUpload,
+                request.Caption,
+                request.Platform,
+                autoCoverPath); // Dışarıdan geleni değil, doğrudan FruitAsset'ten aldığımız orijinal fotoğrafı veriyoruz
             // 3. Yükleme sonucuna göre Veritabanına "Yayınlanmış Video" ekle
             if (success)
             {
