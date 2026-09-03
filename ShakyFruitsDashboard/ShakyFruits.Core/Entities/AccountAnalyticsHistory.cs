@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ShakyFruits.Core.Enums;
+using System;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ShakyFruits.Core.Entities
@@ -21,5 +22,6 @@ namespace ShakyFruits.Core.Entities
         public decimal EstimatedRewards { get; set; }
 
         public DateTime RecordedAt { get; set; }
+        public SocialPlatform Platform { get; set; } // TikTok veya Instagram
     }
 }

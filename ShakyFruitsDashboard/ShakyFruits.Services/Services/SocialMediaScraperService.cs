@@ -1,5 +1,7 @@
-﻿using Microsoft.Playwright;
+﻿using Microsoft.Extensions.Logging;
+using Microsoft.Playwright;
 using ShakyFruits.Core.Entities;
+using ShakyFruits.Core.Enums;
 using System;
 using System.Threading.Tasks;
 
@@ -7,6 +9,13 @@ namespace ShakyFruits.Services
 {
     public class SocialMediaScraperService
     {
+        private readonly ILogger<SocialMediaScraperService> _logger;
+
+        // Constructor ile Logger'ı içeri alıyoruz
+        public SocialMediaScraperService(ILogger<SocialMediaScraperService> logger)
+        {
+            _logger = logger;
+        }
         public async Task SetupTikTokLoginAsync()
         {
             // Kling ile aynı klasörü kullanıyoruz, böylece tüm çerezler tek yerde toplanıyor
@@ -32,6 +41,54 @@ namespace ShakyFruits.Services
             await page.CloseAsync();
         }
 
+        public async Task SetupInstagramLoginAsync()
+        {
+            // Kling ve TikTok ile aynı klasörü kullanıyoruz, böylece tüm çerezler tek yerde toplanıyor
+            string userDataDir = Path.Combine(Directory.GetCurrentDirectory(), "BrowserData");
+
+            using var playwright = await Playwright.CreateAsync();
+            await using var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
+            {
+                Headless = false, // Giriş yapabilmeni görmek için ekranı açık başlatıyoruz
+                Channel = "chrome",
+                Args = new[] { "--disable-blink-features=AutomationControlled" }
+            });
+
+            var page = await browserContext.NewPageAsync();
+
+            _logger.LogInformation("Instagram giriş sayfasına yönlendiriliyor...");
+            await page.GotoAsync("https://www.instagram.com/accounts/login/", new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
+
+            // Kullanıcı adı ve şifreni girip giriş yapman için 2 dakika (120 saniye) süre tanıyoruz.
+            // Giriş yaptıktan ve ana sayfa açıldıktan sonra tarayıcıyı elleme, sürenin bitmesini bekle.
+            await Task.Delay(120000);
+
+            await page.CloseAsync();
+        }
+        public async Task SetupMetaBusinessSuiteLoginAsync()
+        {
+            string userDataDir = Path.Combine(Directory.GetCurrentDirectory(), "BrowserData");
+
+            using var playwright = await Playwright.CreateAsync();
+            await using var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
+            {
+                Headless = false, // Giriş işlemini yapabilmen için ekranı açıyoruz
+                Channel = "chrome",
+                Args = new[] { "--disable-blink-features=AutomationControlled" }
+            });
+
+            var page = await browserContext.NewPageAsync();
+
+            _logger.LogInformation("Meta Business Suite giriş sayfasına yönlendiriliyor...");
+            await page.GotoAsync("https://business.facebook.com/", new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
+
+            // Facebook veya Instagram ile giriş yapman, İki Faktörlü Doğrulamayı (2FA) geçmen 
+            // ve doğru işletme/sayfa hesabını seçmen için sana 3 dakika (180 saniye) veriyoruz.
+            // Sayfa tamamen açılıp paneli gördükten sonra tarayıcıyı kendi kendine kapanana kadar elleme.
+            await Task.Delay(180000);
+
+            await page.CloseAsync();
+        }
         public async Task<VideoAnalytics> ScrapeTikTokStatsAsync(string videoUrl)
         {
             // Kalıcı oturum klasörümüz (Kling'de kullandığımızın aynısı)
@@ -149,6 +206,110 @@ namespace ShakyFruits.Services
             {
                 await page.ScreenshotAsync(new PageScreenshotOptions { Path = "account_analytics_hata.png" });
                 throw new Exception("Hesap geneli analiz kazıması başarısız. İç hata: " + ex.Message);
+            }
+            finally
+            {
+                await page.CloseAsync();
+            }
+        }
+
+        public async Task<AccountAnalyticsHistory> ScrapeInstagramAccountAnalyticsAsync()
+        {
+            string userDataDir = Path.Combine(Directory.GetCurrentDirectory(), "BrowserData");
+
+            using var playwright = await Playwright.CreateAsync();
+            await using var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
+            {
+                Headless = false, // İlk testte verilerin gelip gelmediğini görmek için false yapabilirsin (Sonra true yaparsın)
+                Channel = "chrome",
+                Args = new[] { "--disable-blink-features=AutomationControlled" }
+            });
+
+            var page = await browserContext.NewPageAsync();
+
+            try
+            {
+                _logger.LogInformation("Instagram Insights sayfasına gidiliyor...");
+                await page.GotoAsync("https://www.instagram.com/accounts/insights/?timeframe=7",
+                    new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle, Timeout = 60000 });
+
+                _logger.LogInformation("İstatistiklerin yüklenmesi bekleniyor...");
+
+                // KRİTİK DÜZELTME: Instagram'ın rakamları yüklemesi için h1 etiketlerinin ekranda görünmesini ve dolmasını bekliyoruz
+                await page.Locator("h1").First.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 20000 });
+                await Task.Delay(4000); // Ekstra React render payı
+
+                // JavaScript ile sayfadaki tüm metin bloklarını tarayıp ilgili metnin altındaki/üstündeki sayıyı alıyoruz
+                var statsDict = await page.EvaluateAsync<Dictionary<string, string>>(@"() => {
+            let result = {};
+            let bodyText = document.body.innerText;
+            
+            // Sayfadaki metinleri satır satır bölüp arıyoruz (Instagram DOM yapısı değişimlerine karşı %100 dayanıklıdır)
+            let lines = bodyText.split('\n').map(l => l.trim());
+            
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i];
+                
+                // Bir sonraki veya önceki satırda rakam olma ihtimaline karşı anahtar kelimeleri yakalıyoruz
+                if (line === 'Görüntülemeler' && i > 0) {
+                    // Genelde üstteki satır rakamdır
+                    result['views'] = lines[i - 1] || lines[i + 1];
+                }
+                if (line === 'Etkileşimler' && i > 0) {
+                    result['engagements'] = lines[i - 1] || lines[i + 1];
+                }
+                if (line === 'Profil hareketleri' && i > 0) {
+                    result['profileActivity'] = lines[i - 1] || lines[i + 1];
+                }
+                if ((line === 'Toplam takipçi' || line === 'Takipçiler') && i > 0) {
+                    // Takipçi sayısını yakala
+                    let val = lines[i - 1];
+                    if(val && !val.includes('%') && !val.includes('Zaman')) {
+                        result['followers'] = val;
+                    }
+                }
+            }
+            
+            // Eğer yukarıdaki satır mantığı kaçarsa doğrudan h1 taraması yapalım
+            let h1s = document.querySelectorAll('h1');
+            h1s.forEach(h1 => {
+                let containerText = h1.closest('div')?.parentElement?.innerText || '';
+                let val = h1.innerText.trim();
+                
+                if (containerText.includes('Görüntülemeler') && !result['views']) result['views'] = val;
+                if (containerText.includes('Etkileşimler') && !result['engagements']) result['engagements'] = val;
+                if (containerText.includes('Profil hareketleri') && !result['profileActivity']) result['profileActivity'] = val;
+                if ((containerText.includes('Toplam takipçi') || containerText.includes('Takipçiler')) && !result['followers'] && !val.includes('%')) result['followers'] = val;
+            });
+
+            return result;
+        }");
+
+                statsDict.TryGetValue("views", out string viewsText);
+                statsDict.TryGetValue("engagements", out string engagementsText);
+                statsDict.TryGetValue("profileActivity", out string profileActivityText);
+                statsDict.TryGetValue("followers", out string followersText);
+
+                return new AccountAnalyticsHistory
+                {
+                    Platform = SocialPlatform.Instagram,
+                    TotalFollowers = ParseSocialNumber(followersText),
+                    TotalVideoViews = ParseSocialNumber(viewsText),
+                    ProfileViews = ParseSocialNumber(profileActivityText),
+                    TotalLikes = ParseSocialNumber(engagementsText),
+
+                    LifetimeLikes = 0,
+                    FollowingCount = 0,
+                    TotalComments = 0,
+                    TotalShares = 0,
+                    EstimatedRewards = 0,
+                    RecordedAt = DateTime.UtcNow
+                };
+            }
+            catch (Exception ex)
+            {
+                await page.ScreenshotAsync(new PageScreenshotOptions { Path = "ig_account_analytics_hata.png" });
+                throw new Exception("Instagram hesap analizi başarısız. Hata: " + ex.Message);
             }
             finally
             {

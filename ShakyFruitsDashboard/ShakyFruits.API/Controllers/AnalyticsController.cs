@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ShakyFruits.API.DTOs;
 using ShakyFruits.API.DTOs.ShakyFruits.API.DTOs;
 using ShakyFruits.Core.Entities;
+using ShakyFruits.Core.Enums;
 using ShakyFruits.Data; // DbContext'in olduğu namespace'i eklemeyi unutma
 using ShakyFruits.Services; // Senin servis namespace'ine göre ayarla
 
@@ -215,7 +216,7 @@ namespace ShakyFruits.API.Controllers
             }
         }
 
-        // 2. DASHBOARD KARTLARI İÇİN: Akıllı Cache Mantığı (YENİ)
+        // 2. DASHBOARD KARTLARI İÇİN: Akıllı Cache Mantığı (Platform Destekli)
         [HttpGet("latest-account-stats")]
         public async Task<IActionResult> GetLatestAccountStats()
         {
@@ -275,6 +276,88 @@ namespace ShakyFruits.API.Controllers
                 return StatusCode(500, new { Message = "Güncel istatistikler alınamadı.", Error = ex.Message });
             }
         }
+        /*[HttpGet("latest-account-stats")]
+        public async Task<IActionResult> GetLatestAccountStats([FromQuery] SocialPlatform platform = SocialPlatform.TikTok)
+        {
+            try
+            {
+                var today = DateTime.UtcNow.Date;
+
+                // 1. Sadece seçilen platformun (TikTok veya Instagram) bugünkü kaydını ara
+                var latestRecord = await _context.AccountAnalyticsHistory
+                    .Where(a => a.Platform == platform)
+                    .OrderByDescending(a => a.RecordedAt)
+                    .FirstOrDefaultAsync();
+
+                // Eğer o platform için bugün kayıt varsa tarayıcıyı açmadan cache'den dön
+                if (latestRecord != null && latestRecord.RecordedAt.Date == today)
+                {
+                    return Ok(new
+                    {
+                        platform = platform.ToString(),
+                        lifetimeLikes = latestRecord.LifetimeLikes,
+                        totalFollowers = latestRecord.TotalFollowers,
+                        followingCount = latestRecord.FollowingCount,
+                        totalVideoViews = latestRecord.TotalVideoViews,
+                        profileViews = latestRecord.ProfileViews,
+                        totalLikes = latestRecord.TotalLikes,
+                        totalComments = latestRecord.TotalComments,
+                        totalShares = latestRecord.TotalShares,
+                        estimatedRewards = latestRecord.EstimatedRewards,
+                        recordedAt = latestRecord.RecordedAt,
+                        source = "Database Cache"
+                    });
+                }
+
+                // 2. Eğer bugün hiç kayıt yoksa, platforma göre DOĞRU kazıyıcıyı tetikle
+                AccountAnalyticsHistory scrapedStats;
+
+                if (platform == SocialPlatform.Instagram)
+                {
+                    // Yeni yazdığımız Instagram Insights kazıyıcısı
+                    scrapedStats = await _scraperService.ScrapeInstagramAccountAnalyticsAsync();
+                }
+                else
+                {
+                    // Mevcut TikTok Studio kazıyıcısı
+                    scrapedStats = await _scraperService.ScrapeAccountAnalyticsAsync();
+                }
+
+                // Hangi platforma ait olduğunu entity'e set ediyoruz
+                scrapedStats.Platform = platform;
+
+                // Gelen nesneyi veritabanına kaydet
+                _context.AccountAnalyticsHistory.Add(scrapedStats);
+                await _context.SaveChangesAsync();
+
+                // Ön yüze taze veriyi dön
+                return Ok(new
+                {
+                    platform = platform.ToString(),
+                    lifetimeLikes = scrapedStats.LifetimeLikes,
+                    totalFollowers = scrapedStats.TotalFollowers,
+                    followingCount = scrapedStats.FollowingCount,
+                    totalVideoViews = scrapedStats.TotalVideoViews,
+                    profileViews = scrapedStats.ProfileViews,
+                    totalLikes = scrapedStats.TotalLikes,
+                    totalComments = scrapedStats.TotalComments,
+                    totalShares = scrapedStats.TotalShares,
+                    estimatedRewards = scrapedStats.EstimatedRewards,
+                    recordedAt = scrapedStats.RecordedAt,
+                    source = "Live Scrape"
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = $"{platform} güncel istatistikleri alınamadı.", Error = ex.Message });
+            }
+        }*/
+        /* [HttpGet("setup-meta-login")]
+         public async Task<IActionResult> SetupInstagramLogin()
+         {
+             await _scraperService.SetupMetaBusinessSuiteLoginAsync();
+             return Ok("Instagram giriş süresi doldu, çerezler kaydedildi.");
+         }*/
 
         // 3. UI TARAFINDA "ŞİMDİ YENİLE" BUTONU İÇİN (Opsiyonel)
         [HttpPost("force-refresh")]
