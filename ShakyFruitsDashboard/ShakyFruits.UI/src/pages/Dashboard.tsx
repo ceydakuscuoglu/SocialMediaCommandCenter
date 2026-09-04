@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchCredits } from "@/api/jobs.api";
 import { KlingCreditCard } from "@/components/dashboard/KlingCreditCard";
-import { TikTokProfileCard } from "@/components/analytics/TikTokProfileCard"; // YENİ EKLENDİ
-import { TikTokAccountOverview } from "@/components/analytics/TikTokAccountOverview"; // Sadece metrikler kaldı
+import { TikTokProfileCard } from "@/components/analytics/TikTokProfileCard";
+import { InstagramProfileCard } from "@/components/analytics/InstagramProfileCard"; // YENİ EKLENDİ
+import { TikTokAccountOverview } from "@/components/analytics/TikTokAccountOverview";
+import { InstagramAccountOverview } from "@/components/analytics/InstagramAccountOverview"; // YENİ EKLENDİ
 import { AccountGrowthChart } from "@/components/dashboard/AccountGrowthChart";
 import { LayoutDashboard } from "lucide-react";
 
@@ -22,34 +24,28 @@ export function Dashboard() {
           Dashboard
         </h2>
         <p className="text-muted-foreground">
-          Overview of your Kling AI balance, top-level account metrics, and recent growth.
+          Overview of your Kling AI balance, top-level account metrics, and recent growth across platforms.
         </p>
       </div>
 
       <div>
-        <h2 className="text-2xl font-semibold tracking-tight mb-4">Executive Summary</h2>
+        <h2 className="text-xl font-semibold tracking-tight mb-4 text-foreground/90">Executive Summary</h2>
+        
+        {/* ÜST SATIR: Bakiye ve Profil Kartları (3 Eşit Kolon) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <KlingCreditCard data={creditData} isLoading={isLoading} />
+          <TikTokProfileCard />
+          <InstagramProfileCard />
+        </div>
 
-        {/* YENİ TASARIM: items-start KESİNLİKLE YOK, varsayılan stretch kullanıyoruz */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-
-          {/* 1. Kolon: Kredi */}
-          <div className="xl:col-span-1">
-            <KlingCreditCard data={creditData} isLoading={isLoading} />
-          </div>
-
-          {/* 2. Kolon: Yeni Profil Kartı (Dik ve şık) */}
-          <div className="xl:col-span-1">
-            <TikTokProfileCard />
-          </div>
-
-          {/* 3. ve 4. Kolon (Geniş): 7 Günlük Metrikler */}
-          <div className="xl:col-span-2">
-            <TikTokAccountOverview />
-          </div>
-
+        {/* ORTA SATIR: 7 Günlük Platform Metrikleri (2 Geniş Kolon) */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <TikTokAccountOverview />
+          <InstagramAccountOverview />
         </div>
       </div>
 
+      {/* ALT SATIR: Kombine Büyüme Grafiği */}
       <div className="mt-2">
         <AccountGrowthChart />
       </div>

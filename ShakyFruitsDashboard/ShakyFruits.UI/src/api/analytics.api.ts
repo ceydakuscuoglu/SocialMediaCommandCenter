@@ -135,6 +135,12 @@ export interface LifespanItem {
   activeLifespanDays: number;
 }
 
+// Platform Enum (C# backend ile aynı sırada olmalı)
+export enum SocialPlatform {
+  TikTok = 1,
+  Instagram = 2
+}
+
 // --- GET İSTEKLERİ ---
 export const fetchLeaderboards = async (): Promise<{ fruitLeaderboard: LeaderboardItem[], danceLeaderboard: LeaderboardItem[] }> => {
   const res = await fetch(`${API_BASE_URL}/leaderboards`);
@@ -179,6 +185,42 @@ export const generateGoldenHours = async (file: File) => {
   return res.json();
 };
 
+// 1. GET: Hesap Geçmişi (Genel Bakış Kartlarındaki Trendler İçin)
+// 1. GET: Hesap Geçmişi (Genel Bakış Kartlarındaki Trendler İçin)
+export const fetchAccountHistory = async (platform?: SocialPlatform | any) => {
+  let url = `${API_BASE_URL}/account-history`;
+  
+  // KESİN ÇÖZÜM: Gelen parametre "SADECE" bir sayıysa (1 veya 2) işlem yap.
+  // React Query'nin gönderdiği obje tuzaklarını (object Object / undefined) tamamen yok sayar.
+  if (typeof platform === "number") {
+    const platformString = SocialPlatform[platform]; 
+    if (platformString) {
+      url += `?platform=${platformString}`;
+    }
+  }
+
+  const res = await fetch(url);
+  if (!res.ok) {
+    const err = await res.json().catch(() => null);
+    throw new Error(err?.title || err?.Message || "Hesap geçmişi alınamadı.");
+  }
+  return res.json();
+};
+
+// 2. GET: TikTok Son İstatistikler (TikTok Profil Kartı İçin)
+export const fetchTikTokStats = async () => {
+  const res = await fetch(`${API_BASE_URL}/tiktok/latest-account-stats`);
+  if (!res.ok) throw new Error("TikTok istatistikleri alınamadı.");
+  return res.json(); // C# backend'in { source, data } formatında dönüyor
+};
+
+// 3. GET: Instagram Son İstatistikler (Instagram Profil Kartı İçin)
+export const fetchInstagramStats = async () => {
+  const res = await fetch(`${API_BASE_URL}/instagram/latest-account-stats`);
+  if (!res.ok) throw new Error("Instagram istatistikleri alınamadı.");
+  return res.json(); // C# backend'in { source, data } formatında dönüyor
+};
+
 // --- API SERVICES ---
 
 // Backend portunu (örn: 5290) kendi sistemine göre güncelle
@@ -219,12 +261,6 @@ export const addPublishedVideo = async (payload: { videoGenerationId: number; po
     const errData = await response.json().catch(() => null);
     throw new Error(errData?.message || "Video sisteme eklenirken bir hata oluştu.");
   }
-};
-
-export const fetchAccountHistory = async (): Promise<AccountAnalyticsHistory[]> => {
-  const response = await fetch(`${API_BASE_URL}/account-history`);
-  if (!response.ok) throw new Error("Hesap verileri alınamadı.");
-  return response.json();
 };
 
 // 1. Dashboard Tablosu İçin Hızlı Yükleme (Liste)

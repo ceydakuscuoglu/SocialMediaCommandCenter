@@ -184,29 +184,39 @@ namespace ShakyFruits.API.Controllers
             }
         }
 
-        // 3. GET: UI için Hesap Geneli Tarihsel Verileri Getir
+        // 3. GET: UI için Hesap Geneli Tarihsel Verileri Getir (Platform Filtreli)
         [HttpGet("account-history")]
-        public async Task<IActionResult> GetAccountHistory()
+        public async Task<IActionResult> GetAccountHistory([FromQuery] SocialPlatform? platform)
         {
             try
             {
-                // React'in grafikleri çizebilmesi için eskiden yeniye doğru sıralı gönderiyoruz
-                var history = await _context.AccountAnalyticsHistory
-                 .OrderBy(a => a.RecordedAt)
-                 .Select(a => new
-                 {
-                     lifetimeLikes = a.LifetimeLikes,
-                     totalFollowers = a.TotalFollowers,
-                     followingCount = a.FollowingCount,
-                     totalVideoViews = a.TotalVideoViews,
-                     profileViews = a.ProfileViews,
-                     totalLikes = a.TotalLikes,
-                     totalComments = a.TotalComments,
-                     totalShares = a.TotalShares,
-                     estimatedRewards = a.EstimatedRewards,
-                     recordedAt = a.RecordedAt
-                 })
-                 .ToListAsync();
+                // 1. Sorguyu hazırlıyoruz ama veritabanına henüz gitmiyoruz
+                var query = _context.AccountAnalyticsHistory.AsQueryable();
+
+                // 2. Eğer dışarıdan bir platform (Örn: ?platform=Instagram) gönderildiyse filtrele
+                if (platform.HasValue)
+                {
+                    query = query.Where(a => a.Platform == platform.Value);
+                }
+
+                // 3. React'in grafikleri çizebilmesi için eskiden yeniye sırala ve JSON'u formatla
+                var history = await query
+                    .OrderBy(a => a.RecordedAt)
+                    .Select(a => new
+                    {
+                        platform = a.Platform.ToString(), // Frontend'in verileri ayırabilmesi için platform adını da ekliyoruz
+                        lifetimeLikes = a.LifetimeLikes,
+                        totalFollowers = a.TotalFollowers,
+                        followingCount = a.FollowingCount,
+                        totalVideoViews = a.TotalVideoViews,
+                        profileViews = a.ProfileViews,
+                        totalLikes = a.TotalLikes,
+                        totalComments = a.TotalComments,
+                        totalShares = a.TotalShares,
+                        estimatedRewards = a.EstimatedRewards,
+                        recordedAt = a.RecordedAt
+                    })
+                    .ToListAsync();
 
                 return Ok(history);
             }
@@ -216,66 +226,6 @@ namespace ShakyFruits.API.Controllers
             }
         }
 
-        // 2. DASHBOARD KARTLARI İÇİN: Akıllı Cache Mantığı (Platform Destekli)
-        /*[HttpGet("latest-account-stats")]
-        public async Task<IActionResult> GetLatestAccountStats()
-        {
-            try
-            {
-                var today = DateTime.UtcNow.Date;
-
-                // DB'deki en son kaydı bul
-                var latestRecord = await _context.AccountAnalyticsHistory
-                    .OrderByDescending(a => a.RecordedAt)
-                    .FirstOrDefaultAsync();
-
-                // Eğer DB'de kayıt varsa ve "Bugün" çekildiyse, tarayıcıyı açmadan direkt dön
-                if (latestRecord != null && latestRecord.RecordedAt.Date == today)
-                {
-                    return Ok(new
-                    {
-                        lifetimeLikes = latestRecord.LifetimeLikes,
-                        totalFollowers = latestRecord.TotalFollowers,
-                        followingCount = latestRecord.FollowingCount,
-                        totalVideoViews = latestRecord.TotalVideoViews,
-                        profileViews = latestRecord.ProfileViews,
-                        totalLikes = latestRecord.TotalLikes,
-                        totalComments = latestRecord.TotalComments,
-                        totalShares = latestRecord.TotalShares,
-                        estimatedRewards = latestRecord.EstimatedRewards,
-                        recordedAt = latestRecord.RecordedAt,
-                        source = "Database Cache" // UI'da verinin beklemeden geldiğini görebilirsin
-                    });
-                }
-
-                // Eğer bugün hiç kayıt yoksa (veya DB tamamen boşsa) Playwright'ı tetikle
-                var scrapedStats = await _scraperService.ScrapeAccountAnalyticsAsync();
-
-                // Gelen Entity nesnesini direkt veritabanına kaydet
-                _context.AccountAnalyticsHistory.Add(scrapedStats);
-                await _context.SaveChangesAsync();
-
-                // Yeni kaydedilen veriyi ön yüze dön
-                return Ok(new
-                {
-                    lifetimeLikes = scrapedStats.LifetimeLikes,
-                    totalFollowers = scrapedStats.TotalFollowers,
-                    followingCount = scrapedStats.FollowingCount,
-                    totalVideoViews = scrapedStats.TotalVideoViews,
-                    profileViews = scrapedStats.ProfileViews,
-                    totalLikes = scrapedStats.TotalLikes,
-                    totalComments = scrapedStats.TotalComments,
-                    totalShares = scrapedStats.TotalShares,
-                    estimatedRewards = scrapedStats.EstimatedRewards,
-                    recordedAt = scrapedStats.RecordedAt,
-                    source = "Live Scrape" // Yeni çekildi
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { Message = "Güncel istatistikler alınamadı.", Error = ex.Message });
-            }
-        }*/
         // ================= TIKTOK ANALİTİKLERİ =================
         [HttpGet("tiktok/latest-account-stats")]
         public async Task<IActionResult> GetTikTokAccountStats()
@@ -881,5 +831,67 @@ namespace ShakyFruits.API.Controllers
                 return StatusCode(500, new { message = "Demografik veriler alınırken hata oluştu.", error = ex.Message });
             }
         }
+
+
+        // 2. DASHBOARD KARTLARI İÇİN: Akıllı Cache Mantığı (Platform Destekli)
+        /*[HttpGet("latest-account-stats")]
+        public async Task<IActionResult> GetLatestAccountStats()
+        {
+            try
+            {
+                var today = DateTime.UtcNow.Date;
+
+                // DB'deki en son kaydı bul
+                var latestRecord = await _context.AccountAnalyticsHistory
+                    .OrderByDescending(a => a.RecordedAt)
+                    .FirstOrDefaultAsync();
+
+                // Eğer DB'de kayıt varsa ve "Bugün" çekildiyse, tarayıcıyı açmadan direkt dön
+                if (latestRecord != null && latestRecord.RecordedAt.Date == today)
+                {
+                    return Ok(new
+                    {
+                        lifetimeLikes = latestRecord.LifetimeLikes,
+                        totalFollowers = latestRecord.TotalFollowers,
+                        followingCount = latestRecord.FollowingCount,
+                        totalVideoViews = latestRecord.TotalVideoViews,
+                        profileViews = latestRecord.ProfileViews,
+                        totalLikes = latestRecord.TotalLikes,
+                        totalComments = latestRecord.TotalComments,
+                        totalShares = latestRecord.TotalShares,
+                        estimatedRewards = latestRecord.EstimatedRewards,
+                        recordedAt = latestRecord.RecordedAt,
+                        source = "Database Cache" // UI'da verinin beklemeden geldiğini görebilirsin
+                    });
+                }
+
+                // Eğer bugün hiç kayıt yoksa (veya DB tamamen boşsa) Playwright'ı tetikle
+                var scrapedStats = await _scraperService.ScrapeAccountAnalyticsAsync();
+
+                // Gelen Entity nesnesini direkt veritabanına kaydet
+                _context.AccountAnalyticsHistory.Add(scrapedStats);
+                await _context.SaveChangesAsync();
+
+                // Yeni kaydedilen veriyi ön yüze dön
+                return Ok(new
+                {
+                    lifetimeLikes = scrapedStats.LifetimeLikes,
+                    totalFollowers = scrapedStats.TotalFollowers,
+                    followingCount = scrapedStats.FollowingCount,
+                    totalVideoViews = scrapedStats.TotalVideoViews,
+                    profileViews = scrapedStats.ProfileViews,
+                    totalLikes = scrapedStats.TotalLikes,
+                    totalComments = scrapedStats.TotalComments,
+                    totalShares = scrapedStats.TotalShares,
+                    estimatedRewards = scrapedStats.EstimatedRewards,
+                    recordedAt = scrapedStats.RecordedAt,
+                    source = "Live Scrape" // Yeni çekildi
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Güncel istatistikler alınamadı.", Error = ex.Message });
+            }
+        }*/
     }
 }
