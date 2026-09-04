@@ -217,7 +217,7 @@ namespace ShakyFruits.API.Controllers
         }
 
         // 2. DASHBOARD KARTLARI İÇİN: Akıllı Cache Mantığı (Platform Destekli)
-        [HttpGet("latest-account-stats")]
+        /*[HttpGet("latest-account-stats")]
         public async Task<IActionResult> GetLatestAccountStats()
         {
             try
@@ -275,89 +275,101 @@ namespace ShakyFruits.API.Controllers
             {
                 return StatusCode(500, new { Message = "Güncel istatistikler alınamadı.", Error = ex.Message });
             }
-        }
-        /*[HttpGet("latest-account-stats")]
-        public async Task<IActionResult> GetLatestAccountStats([FromQuery] SocialPlatform platform = SocialPlatform.TikTok)
+        }*/
+        // ================= TIKTOK ANALİTİKLERİ =================
+        [HttpGet("tiktok/latest-account-stats")]
+        public async Task<IActionResult> GetTikTokAccountStats()
         {
             try
             {
                 var today = DateTime.UtcNow.Date;
+                var platform = SocialPlatform.TikTok;
 
-                // 1. Sadece seçilen platformun (TikTok veya Instagram) bugünkü kaydını ara
                 var latestRecord = await _context.AccountAnalyticsHistory
                     .Where(a => a.Platform == platform)
                     .OrderByDescending(a => a.RecordedAt)
                     .FirstOrDefaultAsync();
 
-                // Eğer o platform için bugün kayıt varsa tarayıcıyı açmadan cache'den dön
+                if (latestRecord != null && latestRecord.RecordedAt.Date == today)
+                    return Ok(new { source = "Database Cache", data = latestRecord });
+
+                // TikTok Studio kazıyıcısını tetikle
+                var scrapedStats = await _scraperService.ScrapeAccountAnalyticsAsync();
+                scrapedStats.Platform = platform;
+
+                _context.AccountAnalyticsHistory.Add(scrapedStats);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { source = "Live Scrape", data = scrapedStats });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "TikTok istatistikleri alınamadı.", Error = ex.Message });
+            }
+        }
+
+        // ================= INSTAGRAM (META) ANALİTİKLERİ =================
+        [HttpGet("instagram/latest-account-stats")]
+        public async Task<IActionResult> GetInstagramAccountStats()
+        {
+            try
+            {
+                var today = DateTime.UtcNow.Date;
+                var platform = SocialPlatform.Instagram;
+
+                var latestRecord = await _context.AccountAnalyticsHistory
+                    .Where(a => a.Platform == platform)
+                    .OrderByDescending(a => a.RecordedAt)
+                    .FirstOrDefaultAsync();
+
+                // 1. CACHE'DEN DÖNÜŞ (Gereksiz alanlar temizlendi)
                 if (latestRecord != null && latestRecord.RecordedAt.Date == today)
                 {
                     return Ok(new
                     {
-                        platform = platform.ToString(),
-                        lifetimeLikes = latestRecord.LifetimeLikes,
-                        totalFollowers = latestRecord.TotalFollowers,
-                        followingCount = latestRecord.FollowingCount,
-                        totalVideoViews = latestRecord.TotalVideoViews,
-                        profileViews = latestRecord.ProfileViews,
-                        totalLikes = latestRecord.TotalLikes,
-                        totalComments = latestRecord.TotalComments,
-                        totalShares = latestRecord.TotalShares,
-                        estimatedRewards = latestRecord.EstimatedRewards,
-                        recordedAt = latestRecord.RecordedAt,
-                        source = "Database Cache"
+                        source = "Database Cache",
+                        data = new
+                        {
+                            id = latestRecord.Id,
+                            platform = latestRecord.Platform.ToString(),
+                            totalFollowers = latestRecord.TotalFollowers,
+                            totalReach = latestRecord.TotalVideoViews,    // Reach değerini taşıyor
+                            contentInteractions = latestRecord.TotalLikes, // Etkileşim değerini taşıyor
+                            profileVisits = latestRecord.ProfileViews,     // Profil ziyareti
+                            recordedAt = latestRecord.RecordedAt
+                        }
                     });
                 }
 
-                // 2. Eğer bugün hiç kayıt yoksa, platforma göre DOĞRU kazıyıcıyı tetikle
-                AccountAnalyticsHistory scrapedStats;
-
-                if (platform == SocialPlatform.Instagram)
-                {
-                    // Yeni yazdığımız Instagram Insights kazıyıcısı
-                    scrapedStats = await _scraperService.ScrapeInstagramAccountAnalyticsAsync();
-                }
-                else
-                {
-                    // Mevcut TikTok Studio kazıyıcısı
-                    scrapedStats = await _scraperService.ScrapeAccountAnalyticsAsync();
-                }
-
-                // Hangi platforma ait olduğunu entity'e set ediyoruz
+                // 2. CANLI KAZIMA VE KAYIT
+                var scrapedStats = await _scraperService.ScrapeMetaBusinessSuiteAnalyticsAsync();
                 scrapedStats.Platform = platform;
 
-                // Gelen nesneyi veritabanına kaydet
                 _context.AccountAnalyticsHistory.Add(scrapedStats);
                 await _context.SaveChangesAsync();
 
-                // Ön yüze taze veriyi dön
+                // 3. YENİ KAZINAN VERİNİN DÖNÜŞÜ (Gereksiz alanlar temizlendi)
                 return Ok(new
                 {
-                    platform = platform.ToString(),
-                    lifetimeLikes = scrapedStats.LifetimeLikes,
-                    totalFollowers = scrapedStats.TotalFollowers,
-                    followingCount = scrapedStats.FollowingCount,
-                    totalVideoViews = scrapedStats.TotalVideoViews,
-                    profileViews = scrapedStats.ProfileViews,
-                    totalLikes = scrapedStats.TotalLikes,
-                    totalComments = scrapedStats.TotalComments,
-                    totalShares = scrapedStats.TotalShares,
-                    estimatedRewards = scrapedStats.EstimatedRewards,
-                    recordedAt = scrapedStats.RecordedAt,
-                    source = "Live Scrape"
+                    source = "Live Scrape",
+                    data = new
+                    {
+                        id = scrapedStats.Id,
+                        platform = scrapedStats.Platform.ToString(),
+                        totalFollowers = scrapedStats.TotalFollowers,
+                        totalReach = scrapedStats.TotalVideoViews,
+                        contentInteractions = scrapedStats.TotalLikes,
+                        profileVisits = scrapedStats.ProfileViews,
+                        recordedAt = scrapedStats.RecordedAt
+                    }
                 });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Message = $"{platform} güncel istatistikleri alınamadı.", Error = ex.Message });
+                return StatusCode(500, new { Message = "Instagram (Meta) istatistikleri alınamadı.", Error = ex.Message });
             }
-        }*/
-        /* [HttpGet("setup-meta-login")]
-         public async Task<IActionResult> SetupInstagramLogin()
-         {
-             await _scraperService.SetupMetaBusinessSuiteLoginAsync();
-             return Ok("Instagram giriş süresi doldu, çerezler kaydedildi.");
-         }*/
+        }
+
 
         // 3. UI TARAFINDA "ŞİMDİ YENİLE" BUTONU İÇİN (Opsiyonel)
         [HttpPost("force-refresh")]
@@ -848,6 +860,25 @@ namespace ShakyFruits.API.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { Message = "CSV işlenirken bir hata oluştu.", Error = ex.Message });
+            }
+        }
+        [HttpGet("instagram/live-demographics")]
+        public async Task<IActionResult> GetLiveInstagramDemographics()
+        {
+            try
+            {
+                // Direkt olarak servisteki otonom metodu çağırıyoruz. DB'ye yazmak yok.
+                var demographics = await _scraperService.GetLiveDemographicsAsync();
+
+                return Ok(new
+                {
+                    message = "Canlı demografik veriler başarıyla çekildi.",
+                    data = demographics
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Demografik veriler alınırken hata oluştu.", error = ex.Message });
             }
         }
     }

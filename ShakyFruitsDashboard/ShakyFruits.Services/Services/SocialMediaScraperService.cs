@@ -2,8 +2,8 @@
 using Microsoft.Playwright;
 using ShakyFruits.Core.Entities;
 using ShakyFruits.Core.Enums;
-using System;
-using System.Threading.Tasks;
+using ShakyFruits.Core.Models;
+using System.Text.Json;
 
 namespace ShakyFruits.Services
 {
@@ -24,7 +24,7 @@ namespace ShakyFruits.Services
             using var playwright = await Playwright.CreateAsync();
             await using var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
             {
-                Headless = true, // Ekranı mutlaka görmeliyiz
+                Headless = false, // Ekranı mutlaka görmeliyiz
                 Channel = "chrome",
                 Args = new[] { "--disable-blink-features=AutomationControlled" }
             });
@@ -213,14 +213,137 @@ namespace ShakyFruits.Services
             }
         }
 
-        public async Task<AccountAnalyticsHistory> ScrapeInstagramAccountAnalyticsAsync()
+        public async Task<AccountAnalyticsHistory> ScrapeMetaBusinessSuiteAnalyticsAsync()
         {
             string userDataDir = Path.Combine(Directory.GetCurrentDirectory(), "BrowserData");
 
             using var playwright = await Playwright.CreateAsync();
             await using var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
             {
-                Headless = false, // İlk testte verilerin gelip gelmediğini görmek için false yapabilirsin (Sonra true yaparsın)
+                Headless = false, // Hataları izlemek için false, her şey çalışınca true yaparsın
+                Channel = "chrome",
+                Args = new[] { "--disable-blink-features=AutomationControlled" }
+            });
+
+            var page = await browserContext.NewPageAsync();
+
+            // Verileri toplayacağımız ana nesnemiz
+            var analytics = new AccountAnalyticsHistory
+            {
+                Platform = SocialPlatform.Instagram,
+                RecordedAt = DateTime.UtcNow
+            };
+
+            try
+            {
+                // 1. Görev: Results (Sonuçlar) sayfasını kazıyan metoda git
+                await ScrapeResultsPageAsync(page, analytics);
+
+                // 2. Görev: Audience (Hedef Kitle) sayfasını kazıyan metoda git
+                await ScrapeAudiencePageAsync(page, analytics);
+
+                return analytics;
+            }
+            catch (Exception ex)
+            {
+                await page.ScreenshotAsync(new PageScreenshotOptions { Path = "meta_insights_hata.png" });
+                throw new Exception("Meta Business Suite kazıması başarısız. Hata: " + ex.Message);
+            }
+            finally
+            {
+                // Önce sekmeyi, sonra tüm tarayıcı altyapısını kesin olarak kapatıyoruz
+                if (page != null) await page.CloseAsync();
+                if (browserContext != null) await browserContext.CloseAsync();
+            }
+        }
+        // ======================================================================
+        // 1. AYRI METOT: SADECE "RESULTS" SAYFASINI KAZIR
+        // ======================================================================
+        private async Task ScrapeResultsPageAsync(IPage page, AccountAnalyticsHistory analytics)
+        {
+            _logger.LogInformation("Meta Business Suite 'Results' sayfasına gidiliyor...");
+            await page.GotoAsync("https://business.facebook.com/latest/insights/results",
+                new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle, Timeout = 60000 });
+
+            await Task.Delay(5000); // Grafiklerin panele yerleşmesi için kısa bir es
+
+            // JS kullanmadan doğrudan C# ile değerleri ekrandan çekiyoruz
+            string reachText = await ExtractMetaValueAsync(page, new[] { "Instagram reach", "Reach", "Erişim" });
+            string interactionsText = await ExtractMetaValueAsync(page, new[] { "Content interactions", "Interactions", "Etkileşimler" });
+            string visitsText = await ExtractMetaValueAsync(page, new[] { "Instagram profile visits", "Profile visits", "Visits", "Profil ziyaretleri" });
+
+            _logger.LogInformation($"Okunan Değerler -> Erişim: {reachText}, Etkileşim: {interactionsText}, Ziyaret: {visitsText}");
+
+            analytics.TotalVideoViews = ParseSocialNumber(reachText);
+            analytics.TotalLikes = ParseSocialNumber(interactionsText);
+            analytics.ProfileViews = ParseSocialNumber(visitsText);
+        }
+
+        // ======================================================================
+        // 2. AYRI METOT: SADECE "AUDIENCE" SAYFASINI KAZIR
+        // ======================================================================
+        private async Task ScrapeAudiencePageAsync(IPage page, AccountAnalyticsHistory analytics)
+        {
+            _logger.LogInformation("Meta Business Suite 'Audience' sayfasına geçiliyor...");
+            await page.GotoAsync("https://business.facebook.com/latest/insights/people",
+                new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle, Timeout = 60000 });
+
+            await Task.Delay(5000);
+
+            // Takipçi rakamını C# ile çek
+            string followersText = await ExtractMetaValueAsync(page, new[] { "Followers", "Total followers", "Takipçiler" });
+
+            _logger.LogInformation($"Okunan Değerler -> Takipçiler: {followersText}");
+
+            analytics.TotalFollowers = ParseSocialNumber(followersText);
+        }
+        // ======================================================================
+        // YARDIMCI METOT: PLAYWRIGHT NATIVE SELECTOR (GÜNCELLENDİ)
+        // ======================================================================
+        private async Task<string> ExtractMetaValueAsync(IPage page, string[] possibleLabels)
+        {
+            foreach (var label in possibleLabels)
+            {
+                try
+                {
+                    // MÜKEMMEL FİLTRE:
+                    // 1. İçinde aradığımız kelime (Örn: "Content interactions") geçen data-pagelet kutularını bul.
+                    // 2. Aynı zamanda içinde '.x10d9sdx' class'lı bir rakam barındırmak ZORUNDA olsun.
+                    // 3. Last komutuyla: Bu kutulardan EN İÇTEKİNİ (en spesifik olan mini kartı) seç.
+                    var container = page.Locator("div[data-pagelet]")
+                                      .Filter(new LocatorFilterOptions { HasText = label })
+                                      .Filter(new LocatorFilterOptions { Has = page.Locator(".x10d9sdx") })
+                                      .Last;
+
+                    // Bulduğumuz o spesifik mini kartın içindeki rakamı yakala
+                    var valueLocator = container.Locator(".x10d9sdx").First;
+
+                    // Sadece 2 saniye bekle, çünkü zaten sayfa yüklendi
+                    await valueLocator.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 2000 });
+
+                    string value = await valueLocator.InnerTextAsync();
+
+                    if (!string.IsNullOrWhiteSpace(value))
+                    {
+                        return value.Trim(); // Eğer bulursa değeri döndür ve metottan çık
+                    }
+                }
+                catch
+                {
+                    // Bu kelimeyi bulamazsa (veya timeout olursa) dizideki diğer kelimeye geç
+                }
+            }
+            return "0"; // Hiçbir kombinasyon çalışmazsa 0 dön
+        }
+
+        public async Task<AudienceDemographics> GetLiveDemographicsAsync()
+        {
+            string userDataDir = Path.Combine(Directory.GetCurrentDirectory(), "BrowserData");
+
+            using var playwright = await Playwright.CreateAsync();
+            await using var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
+            {
+                Headless = true, // Arka planda gizlice çalışır
                 Channel = "chrome",
                 Args = new[] { "--disable-blink-features=AutomationControlled" }
             });
@@ -229,87 +352,72 @@ namespace ShakyFruits.Services
 
             try
             {
-                _logger.LogInformation("Instagram Insights sayfasına gidiliyor...");
-                await page.GotoAsync("https://www.instagram.com/accounts/insights/?timeframe=7",
+                _logger.LogInformation("Canlı demografi kazıması için Audience sayfasına gidiliyor...");
+                await page.GotoAsync("https://business.facebook.com/latest/insights/people",
                     new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle, Timeout = 60000 });
 
-                _logger.LogInformation("İstatistiklerin yüklenmesi bekleniyor...");
+                // Tabloların ve pasta grafiklerin render olması için süre tanıyoruz
+                await Task.Delay(5000);
 
-                // KRİTİK DÜZELTME: Instagram'ın rakamları yüklemesi için h1 etiketlerinin ekranda görünmesini ve dolmasını bekliyoruz
-                await page.Locator("h1").First.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 20000 });
-                await Task.Delay(4000); // Ekstra React render payı
-
-                // JavaScript ile sayfadaki tüm metin bloklarını tarayıp ilgili metnin altındaki/üstündeki sayıyı alıyoruz
-                var statsDict = await page.EvaluateAsync<Dictionary<string, string>>(@"() => {
-            let result = {};
-            let bodyText = document.body.innerText;
+                // EvaluateAsync<string> olarak değiştirildi ve JS kodu JSON.stringify döndürecek şekilde ayarlandı
+                var jsonResult = await page.EvaluateAsync<string>(@"() => {
+            let result = {
+                womenPercentage: '0%', menPercentage: '0%',
+                topCountries: [], topCities: []
+            };
             
-            // Sayfadaki metinleri satır satır bölüp arıyoruz (Instagram DOM yapısı değişimlerine karşı %100 dayanıklıdır)
-            let lines = bodyText.split('\n').map(l => l.trim());
+            // 1. KADIN / ERKEK YÜZDELERİNİ BUL
+            let spans = Array.from(document.querySelectorAll('span, div'));
             
-            for (let i = 0; i < lines.length; i++) {
-                let line = lines[i];
+            // Parantez () içine alınarak JS koşul hataları giderildi
+            let womenEl = spans.find(s => s.innerText && (s.innerText.trim() === 'Women' || s.innerText.trim() === 'Kadınlar'));
+            if(womenEl && womenEl.nextElementSibling) result.womenPercentage = womenEl.nextElementSibling.innerText.trim();
+            
+            let menEl = spans.find(s => s.innerText && (s.innerText.trim() === 'Men' || s.innerText.trim() === 'Erkekler'));
+            if(menEl && menEl.nextElementSibling) result.menPercentage = menEl.nextElementSibling.innerText.trim();
+            
+            // 2. LİSTELERİ ÇEKEN YARDIMCI FONKSİYON (Ülke ve Şehirler için)
+            function getListValues(headerTextEn, headerTextTr) {
+                let list = [];
+                let header = spans.find(s => s.innerText && (s.innerText.trim() === headerTextEn || s.innerText.trim() === headerTextTr));
                 
-                // Bir sonraki veya önceki satırda rakam olma ihtimaline karşı anahtar kelimeleri yakalıyoruz
-                if (line === 'Görüntülemeler' && i > 0) {
-                    // Genelde üstteki satır rakamdır
-                    result['views'] = lines[i - 1] || lines[i + 1];
-                }
-                if (line === 'Etkileşimler' && i > 0) {
-                    result['engagements'] = lines[i - 1] || lines[i + 1];
-                }
-                if (line === 'Profil hareketleri' && i > 0) {
-                    result['profileActivity'] = lines[i - 1] || lines[i + 1];
-                }
-                if ((line === 'Toplam takipçi' || line === 'Takipçiler') && i > 0) {
-                    // Takipçi sayısını yakala
-                    let val = lines[i - 1];
-                    if(val && !val.includes('%') && !val.includes('Zaman')) {
-                        result['followers'] = val;
+                if (header) {
+                    // Başlığın ait olduğu asıl listeyi/kartı bul
+                    let container = header.closest('div[data-pagelet]') || header.parentElement.parentElement.parentElement.parentElement;
+                    if (container) {
+                        // Sıralı listeyi (ol) ve içindeki elemanları (li) yakala
+                        let items = container.querySelectorAll('ol > li');
+                        items.forEach(li => {
+                            // Satırın içindeki tüm metinleri böl (Örn: 'Turkey \n 19.8%')
+                            let parts = li.innerText.split('\n').map(t => t.trim()).filter(t => t !== '');
+                            if(parts.length >= 2) {
+                                // İlk parça isim, son parça yüzdedir
+                                list.push({ name: parts[0], percentage: parts[parts.length - 1] });
+                            }
+                        });
                     }
                 }
+                return list;
             }
             
-            // Eğer yukarıdaki satır mantığı kaçarsa doğrudan h1 taraması yapalım
-            let h1s = document.querySelectorAll('h1');
-            h1s.forEach(h1 => {
-                let containerText = h1.closest('div')?.parentElement?.innerText || '';
-                let val = h1.innerText.trim();
-                
-                if (containerText.includes('Görüntülemeler') && !result['views']) result['views'] = val;
-                if (containerText.includes('Etkileşimler') && !result['engagements']) result['engagements'] = val;
-                if (containerText.includes('Profil hareketleri') && !result['profileActivity']) result['profileActivity'] = val;
-                if ((containerText.includes('Toplam takipçi') || containerText.includes('Takipçiler')) && !result['followers'] && !val.includes('%')) result['followers'] = val;
-            });
-
-            return result;
+            // 3. ÜLKE VE ŞEHİRLERİ LİSTEYE DOLDUR
+            result.topCountries = getListValues('Top countries', 'Başlıca ülkeler');
+            result.topCities = getListValues('Top cities', 'Başlıca şehirler');
+            
+            // Nesneyi JSON string olarak C# tarafına fırlat
+            return JSON.stringify(result);
         }");
 
-                statsDict.TryGetValue("views", out string viewsText);
-                statsDict.TryGetValue("engagements", out string engagementsText);
-                statsDict.TryGetValue("profileActivity", out string profileActivityText);
-                statsDict.TryGetValue("followers", out string followersText);
+                // System.Text.Json ile string'i güvenle C# modeline dönüştürüyoruz
+                var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var demographics = System.Text.Json.JsonSerializer.Deserialize<AudienceDemographics>(jsonResult, options);
 
-                return new AccountAnalyticsHistory
-                {
-                    Platform = SocialPlatform.Instagram,
-                    TotalFollowers = ParseSocialNumber(followersText),
-                    TotalVideoViews = ParseSocialNumber(viewsText),
-                    ProfileViews = ParseSocialNumber(profileActivityText),
-                    TotalLikes = ParseSocialNumber(engagementsText),
-
-                    LifetimeLikes = 0,
-                    FollowingCount = 0,
-                    TotalComments = 0,
-                    TotalShares = 0,
-                    EstimatedRewards = 0,
-                    RecordedAt = DateTime.UtcNow
-                };
+                return demographics;
             }
             catch (Exception ex)
             {
-                await page.ScreenshotAsync(new PageScreenshotOptions { Path = "ig_account_analytics_hata.png" });
-                throw new Exception("Instagram hesap analizi başarısız. Hata: " + ex.Message);
+                await page.ScreenshotAsync(new PageScreenshotOptions { Path = "meta_demographics_hata.png" });
+                throw new Exception("Canlı demografi kazıması başarısız. Hata: " + ex.Message);
             }
             finally
             {
