@@ -25,5 +25,8 @@ namespace ShakyFruits.Core.Entities
         // 4. Çıktılar (İleride kullanılacak)
         public string? OutputVideoPath { get; set; }
         public string? AiGeneratedCaption { get; set; }
+
+        // Core/Models/VideoGeneration.cs dosyasının içine ekle:
+        public virtual PublishedVideo? PublishedVideo { get; set; }
     }
 }

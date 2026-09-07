@@ -16,6 +16,19 @@ export interface VideoJob {
   outputVideoPath: string | null;
   createdAt: string; // C# DateTime'ı JSON'da ISO string olarak gelir
 }
+
+export interface UpdateHistoricalVideoRequest {
+  fruitAssetId: number;
+  referenceVideoId?: number;
+  isRecreate: boolean;
+  targetUrl?: string;
+  outputVideoPath?: string;
+  aiGeneratedCaption?: string;
+  isPublished: boolean;
+  platform: number; // 0: TikTok, 1: Instagram (Backend enum yapına göre)
+  postUrl?: string;
+  publishedAt?: string;
+}
 // CEYDAK sunucusundaki API adresimiz
 // Not: Port numarasını (.NET API'nin çalıştığı port, örn: 5000, 5001 veya 7100 vb.) kendi yapına göre güncelle.
 const API_BASE_URL = "http://localhost:5290/api/KlingAIBot";
@@ -83,6 +96,27 @@ export const confirmJob = async (payload: ConfirmPayload): Promise<{ message: st
   }
 
   return response.json();
+};
+
+export const updateJob = async ({ id, data }: { id: number; data: UpdateHistoricalVideoRequest }) => {
+  const res = await fetch(`https://localhost:7159/api/KlingAIBot/historical-videos/${id}`, { 
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => null);
+    
+    // ASP.NET Core'un fırlattığı detaylı Validation (Doğrulama) hatalarını ekrana yazdırır
+    let errorMsg = errorData?.title || errorData?.message || "Kayıt güncellenirken bir hata oluştu.";
+    if (errorData?.errors) {
+        errorMsg += "\n\nDetaylar:\n" + JSON.stringify(errorData.errors, null, 2);
+    }
+    
+    throw new Error(errorMsg);
+  }
+  return res.json();
 };
 
 // SİLME İŞLEMİ İÇİN METOT:

@@ -19,5 +19,15 @@
 
         // Yeni eklenen alan: Videonun kuyruğa alınma/oluşturulma tarihi
         public DateTime CreatedAt { get; set; }
+        // ==========================================
+        // YENİ EKLENEN ALANLAR (Ön yüz Modalı için)
+        // ==========================================
+        public int FruitAssetId { get; set; }
+        public int? ReferenceVideoId { get; set; }
+        public string? AiGeneratedCaption { get; set; }
+
+        public bool IsPublished { get; set; }
+        public int Platform { get; set; }
+        public string? PostUrl { get; set; }
     }
 }

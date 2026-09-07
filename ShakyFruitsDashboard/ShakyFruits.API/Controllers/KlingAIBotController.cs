@@ -253,26 +253,34 @@ namespace ShakyFruits.API.Controllers
             try
             {
                 // Veritabanından en son eklenen işleri en üstte olacak şekilde (OrderByDescending) çekiyoruz
-                var generations = await _context.VideoGenerations
-                    .Include(x => x.FruitAsset)
-                    .Include(x => x.ReferenceVideo)
-                    .OrderByDescending(x => x.Id)
-                    .Select(x => new VideoGenerationListDto
-                    {
-                        Id = x.Id,
-                        FruitImagePath = x.FruitAsset.ImagePath,
-                        // Null koruması: Eğer Recreate ise video yoktur, null döner
-                        ReferenceVideoPath = x.ReferenceVideo != null ? x.ReferenceVideo.VideoPath : null,
-                        IsRecreate = x.IsRecreate,
-                        AppliedPrompt = x.AppliedPrompt,
-                        Status = x.Status.ToString(), // Enum'u doğrudan metne çeviriyoruz ("Pending", "Completed" vs.)
-                        ErrorMessage = x.ErrorMessage,
-                        OutputVideoPath = x.OutputVideoPath,
-                        CreatedAt = x.CreatedAt
-                    })
-                    .ToListAsync();
+                var history = await _context.VideoGenerations
+                  .Include(v => v.FruitAsset)
+                  .Include(v => v.ReferenceVideo)
+                  .Include(v => v.PublishedVideo) // <-- EĞER BU YOKSA EKLENMELİ
+                  .OrderByDescending(v => v.CreatedAt)
+                  .Select(v => new VideoGenerationListDto
+                  {
+                      Id = v.Id,
+                      FruitImagePath = v.FruitAsset.ImagePath,
+                      ReferenceVideoPath = v.ReferenceVideo != null ? v.ReferenceVideo.VideoPath : null,
+                      IsRecreate = v.IsRecreate,
+                      AppliedPrompt = v.AppliedPrompt,
+                      Status = v.Status.ToString(),
+                      ErrorMessage = v.ErrorMessage,
+                      OutputVideoPath = v.OutputVideoPath,
+                      CreatedAt = v.CreatedAt,
 
-                return Ok(generations);
+                      // Modalın çalışması için gereken yeni alanlar eşleştiriliyor
+                      FruitAssetId = v.FruitAssetId,
+                      ReferenceVideoId = v.ReferenceVideoId,
+                      AiGeneratedCaption = v.AiGeneratedCaption,
+
+                      IsPublished = v.PublishedVideo != null,
+                      Platform = v.PublishedVideo != null ? (int)v.PublishedVideo.Platform : 0,
+                      PostUrl = v.PublishedVideo != null ? v.PublishedVideo.PostUrl : ""
+                  })
+                  .ToListAsync();
+                return Ok(history);
             }
             catch (Exception ex)
             {
@@ -311,6 +319,96 @@ namespace ShakyFruits.API.Controllers
                 return BadRequest($"Silme işlemi sırasında hata oluştu: {ex.Message}");
             }
         }
+
+        [HttpPut("historical-videos/{id}")]
+        public async Task<IActionResult> UpdateHistoricalVideo(int id, [FromBody] UpdateHistoricalVideoRequestDto request)
+        {
+            try
+            {
+                // 1. DOKUNUŞ: Ana video kaydını ve bağlı yayın kaydını (PublishedVideo) TEK SORGGUDA getir
+                var generation = await _context.VideoGenerations
+                    .Include(v => v.PublishedVideo)
+                    .FirstOrDefaultAsync(v => v.Id == id);
+
+                if (generation == null)
+                    return NotFound(new { message = "Güncellenmek istenen video kaydı bulunamadı." });
+
+                // Meyve değiştiyse geçerliliğini kontrol et ve yeni Prompt'u al
+                if (generation.FruitAssetId != request.FruitAssetId)
+                {
+                    var fruitAsset = await _context.FruitAssets.FindAsync(request.FruitAssetId);
+                    if (fruitAsset == null)
+                        return BadRequest("Geçersiz FruitAssetId. Güncellenmek istenen meyve sistemde yok.");
+
+                    generation.AppliedPrompt = fruitAsset.GetAppliedFixPrompt();
+                }
+
+                // 2. DOKUNUŞ: ReferenceVideoId eklendiyse/değiştiyse veritabanında var mı kontrol et
+                if (request.ReferenceVideoId.HasValue && generation.ReferenceVideoId != request.ReferenceVideoId)
+                {
+                    var refVideoExists = await _context.ReferenceVideos.AnyAsync(r => r.Id == request.ReferenceVideoId.Value);
+                    if (!refVideoExists)
+                        return BadRequest("Geçersiz ReferenceVideoId. Sistemde böyle bir referans video yok.");
+                }
+
+                // Ana tablo (VideoGeneration) verilerini güncelle
+                generation.FruitAssetId = request.FruitAssetId;
+                generation.ReferenceVideoId = request.ReferenceVideoId;
+                generation.IsRecreate = request.IsRecreate;
+                generation.TargetUrl = request.TargetUrl;
+                generation.OutputVideoPath = request.OutputVideoPath;
+                generation.AiGeneratedCaption = request.AiGeneratedCaption;
+
+                // 4. Yayınlanma Durumu (PublishedVideo) Senkronizasyonu
+                // Artık ayrı sorgu atmıyoruz, Include ile gelen generation.PublishedVideo nesnesini kullanıyoruz
+                if (request.IsPublished)
+                {
+                    if (generation.PublishedVideo != null)
+                    {
+                        // Zaten yayınlıydı, bilgileri güncelle
+                        generation.PublishedVideo.Platform = request.Platform;
+                        generation.PublishedVideo.PostUrl = request.PostUrl;
+                        if (request.PublishedAt.HasValue)
+                            generation.PublishedVideo.PublishedAt = request.PublishedAt.Value;
+                    }
+                    else
+                    {
+                        // Önceden yayınlı değildi, yeni yayın kaydı oluştur
+                        generation.PublishedVideo = new PublishedVideo
+                        {
+                            Platform = request.Platform,
+                            PostUrl = request.PostUrl,
+                            PublishedAt = request.PublishedAt ?? DateTime.UtcNow
+                        };
+                    }
+                }
+                else
+                {
+                    // Kullanıcı 'IsPublished = false' olarak güncellediyse ve sistemde yayın kaydı varsa, SİL
+                    if (generation.PublishedVideo != null)
+                    {
+                        _context.PublishedVideos.Remove(generation.PublishedVideo);
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                // 3. DOKUNUŞ: React'in veriyi direkt state'e basabilmesi için güncel verileri dön
+                return Ok(new
+                {
+                    message = "Geçmiş video kaydı başarıyla güncellendi.",
+                    videoGenerationId = generation.Id,
+                    appliedPrompt = generation.AppliedPrompt,
+                    outputVideoPath = generation.OutputVideoPath,
+                    isPublished = request.IsPublished
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Video güncellenirken hata oluştu.", Error = ex.Message });
+            }
+        }
+
 
         /*[HttpGet("credits")]
         public async Task<IActionResult> GetCredits()
