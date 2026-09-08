@@ -1,11 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using ShakyFruits.API.DTOs;
-using ShakyFruits.Core.Entities;
-using ShakyFruits.Core.Enums;
-using ShakyFruits.Core.Settings;
-using ShakyFruits.Data;
+using ShakyFruits.Core.Interfaces;
+using System;
+using System.Threading.Tasks;
 
 namespace ShakyFruits.API.Controllers
 {
@@ -13,202 +10,218 @@ namespace ShakyFruits.API.Controllers
     [ApiController]
     public class AssetsController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
-        private readonly AssetPathOptions _assetPaths;
+        private readonly IAssetsService _assetsService;
+        private readonly IGenerationService _generationService;
 
-        public AssetsController(ApplicationDbContext context, IOptions<AssetPathOptions> assetPathsOptions)
+        public AssetsController(IAssetsService assetsService, IGenerationService generationService)
         {
-            _context = context;
-            _assetPaths = assetPathsOptions.Value;
+            _assetsService = assetsService;
+            _generationService = generationService;
         }
 
         [HttpPost("fruits")]
         public async Task<IActionResult> AddFruitAsset([FromBody] CreateFruitAssetRequestDto request)
         {
-            var fruitTypes = await _context.FruitTypes
-                .Where(f => request.FruitTypeIds.Contains(f.Id))
-                .ToListAsync();
-
-            var newAsset = new FruitAsset
+            try
             {
-                Title = request.Title,
-                ImagePath = request.ImagePath,
-                IsMultipleFruits = request.IsMultipleFruits,
-                FruitsInImage = fruitTypes
-            };
-
-            _context.FruitAssets.Add(newAsset);
-            await _context.SaveChangesAsync();
-
-            // DÖNGÜ KIRICI: Sadece UI'ın ihtiyacı olan alanları dönüyoruz.
-            return Ok(new
+                var result = await _assetsService.AddFruitAssetAsync(
+                    request.Title,
+                    request.ImagePath,
+                    request.IsMultipleFruits,
+                    request.FruitTypeIds);
+                return Ok(result);
+            }
+            catch (Exception ex)
             {
-                id = newAsset.Id,
-                title = newAsset.Title,
-                imagePath = newAsset.ImagePath,
-                isMultipleFruits = newAsset.IsMultipleFruits,
-                fruits = newAsset.FruitsInImage.Select(f => new
-                {
-                    id = f.Id,
-                    name = f.Name
-                }).ToList()
-            });
-        }
-
-        [HttpPost("reference-videos")]
-        public async Task<IActionResult> AddReferenceVideo([FromBody] CreateReferenceVideoRequestDto request)
-        {
-            var newReference = new ReferenceVideo
-            {
-                DanceStyle = request.DanceStyle,
-                SourceType = request.SourceType,
-                VideoPath = request.SourceType == ReferenceSourceType.LocalUpload ? request.VideoPath : null,
-                KlingSourceUrlOrId = request.SourceType == ReferenceSourceType.KlingRecreate ? request.KlingSourceUrlOrId : null
-            };
-
-            _context.ReferenceVideos.Add(newReference);
-            await _context.SaveChangesAsync();
-
-            // DÖNGÜ KIRICI
-            return Ok(new
-            {
-                id = newReference.Id,
-                danceStyle = newReference.DanceStyle,
-                sourceType = newReference.SourceType.ToString(),
-                videoPath = newReference.VideoPath,
-                klingSourceUrlOrId = newReference.KlingSourceUrlOrId
-            });
-        }
-
-        [HttpPatch("complete-generation")]
-        public async Task<IActionResult> CompleteVideoGeneration([FromBody] CompleteGenerationRequestDto request)
-        {
-            var generation = await _context.VideoGenerations.FindAsync(request.VideoGenerationId);
-            if (generation == null) return NotFound();
-
-            generation.OutputVideoPath = request.OutputVideoPath;
-            generation.AiGeneratedCaption = request.AiGeneratedCaption;
-            generation.Status = GenerationStatus.Completed;
-
-            await _context.SaveChangesAsync();
-
-            // DÖNGÜ KIRICI
-            return Ok(new
-            {
-                id = generation.Id,
-                status = generation.Status.ToString(),
-                outputVideoPath = generation.OutputVideoPath,
-                aiGeneratedCaption = generation.AiGeneratedCaption
-            });
-        }
-
-        [HttpPost("fruit-types")]
-        public async Task<IActionResult> AddFruitType([FromBody] CreateFruitTypeRequestDto request)
-        {
-            if (string.IsNullOrWhiteSpace(request.Name))
-                return BadRequest("Meyve adı boş olamaz.");
-
-            var exists = await _context.FruitTypes.AnyAsync(f => f.Name.ToLower() == request.Name.ToLower());
-            if (exists)
-                return BadRequest($"'{request.Name}' türü sistemde zaten kayıtlı.");
-
-            var newFruitType = new FruitType
-            {
-                Name = request.Name
-            };
-
-            _context.FruitTypes.Add(newFruitType);
-            await _context.SaveChangesAsync();
-
-            // DÖNGÜ KIRICI
-            return Ok(new
-            {
-                id = newFruitType.Id,
-                name = newFruitType.Name
-            });
+                return StatusCode(500, new { Message = "Meyve görseli eklenirken hata oluştu.", Error = ex.Message });
+            }
         }
 
         [HttpGet("fruits")]
         public async Task<IActionResult> GetFruitAssets()
         {
-            // Include ile bağlı olduğu türleri çekip, Select ile döngüyü kırıyoruz
-            var assets = await _context.FruitAssets
-                .Include(f => f.FruitsInImage)
-                .OrderByDescending(f => f.CreatedAt) // En son eklenen en üstte gelsin
-                .Select(a => new
-                {
-                    id = a.Id,
-                    title = a.Title,
-                    imagePath = a.ImagePath,
-                    isMultipleFruits = a.IsMultipleFruits,
-                    fruits = a.FruitsInImage.Select(f => new
-                    {
-                        id = f.Id,
-                        name = f.Name
-                    }).ToList()
-                })
-                .ToListAsync();
+            try
+            {
+                var assets = await _assetsService.GetFruitAssetsAsync();
+                return Ok(assets);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Meyve görselleri getirilirken hata oluştu.", Error = ex.Message });
+            }
+        }
 
-            return Ok(assets);
+        [HttpGet("fruits/{id}")]
+        public async Task<IActionResult> GetFruitAssetById(int id)
+        {
+            try
+            {
+                var asset = await _assetsService.GetFruitAssetByIdAsync(id);
+                if (asset == null) return NotFound();
+                return Ok(asset);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Meyve görseli getirilirken hata oluştu.", Error = ex.Message });
+            }
+        }
+
+        [HttpPut("fruits/{id}")]
+        public async Task<IActionResult> UpdateFruitAsset(int id, [FromBody] UpdateFruitAssetRequestDto request)
+        {
+            try
+            {
+                var result = await _assetsService.UpdateFruitAssetAsync(
+                    id,
+                    request.Title,
+                    request.ImagePath,
+                    request.IsMultipleFruits,
+                    request.FruitTypeIds);
+
+                if (result == null)
+                    return NotFound(new { Message = "Güncellenmek istenen meyve kaydı bulunamadı." });
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Meyve görseli güncellenirken hata oluştu.", Error = ex.Message });
+            }
+        }
+
+        [HttpPost("reference-videos")]
+        public async Task<IActionResult> AddReferenceVideo([FromBody] CreateReferenceVideoRequestDto request)
+        {
+            try
+            {
+                var result = await _assetsService.AddReferenceVideoAsync(
+                    request.DanceStyle,
+                    request.SourceType,
+                    request.VideoPath,
+                    request.KlingSourceUrlOrId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Referans video eklenirken hata oluştu.", Error = ex.Message });
+            }
         }
 
         [HttpGet("reference-videos")]
         public async Task<IActionResult> GetReferenceVideos()
         {
-            var videos = await _context.ReferenceVideos
-                .OrderByDescending(v => v.CreatedAt)
-                .Select(v => new
-                {
-                    id = v.Id,
-                    danceStyle = v.DanceStyle,
-                    sourceType = v.SourceType.ToString(),
-                    videoPath = v.VideoPath,
-                    klingSourceUrlOrId = v.KlingSourceUrlOrId
-                })
-                .ToListAsync();
+            try
+            {
+                var videos = await _assetsService.GetReferenceVideosAsync();
+                return Ok(videos);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Referans videolar getirilirken hata oluştu.", Error = ex.Message });
+            }
+        }
 
-            return Ok(videos);
+        [HttpPut("reference-videos/{id}")]
+        public async Task<IActionResult> UpdateReferenceVideo(int id, [FromBody] UpdateReferenceVideoRequestDto request)
+        {
+            try
+            {
+                var result = await _assetsService.UpdateReferenceVideoAsync(
+                    id,
+                    request.DanceStyle,
+                    request.SourceType,
+                    request.VideoPath,
+                    request.KlingSourceUrlOrId);
+
+                if (result == null)
+                    return NotFound(new { Message = "Güncellenmek istenen referans video bulunamadı." });
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Referans video güncellenirken hata oluştu.", Error = ex.Message });
+            }
+        }
+
+        [HttpPost("fruit-types")]
+        public async Task<IActionResult> AddFruitType([FromBody] CreateFruitTypeRequestDto request)
+        {
+            try
+            {
+                var result = await _assetsService.AddFruitTypeAsync(request.Name);
+                return Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Meyve türü eklenirken hata oluştu.", Error = ex.Message });
+            }
         }
 
         [HttpGet("fruit-types")]
         public async Task<IActionResult> GetFruitTypes()
         {
-            var types = await _context.FruitTypes
-                .OrderBy(t => t.Name) // Alfabetik sıralama UI tarafındaki Dropdown'lar için çok daha şıktır
-                .Select(t => new
-                {
-                    id = t.Id,
-                    name = t.Name
-                })
-                .ToListAsync();
-
-            return Ok(types);
+            try
+            {
+                var types = await _assetsService.GetFruitTypesAsync();
+                return Ok(types);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Meyve türleri getirilirken hata oluştu.", Error = ex.Message });
+            }
         }
 
-        // İhtiyaç halinde tekil bir meyveyi ID ile getirmek için (Örn: Düzenleme sayfası)
-        [HttpGet("fruits/{id}")]
-        public async Task<IActionResult> GetFruitAssetById(int id)
+        [HttpPut("fruit-types/{id}")]
+        public async Task<IActionResult> UpdateFruitType(int id, [FromBody] UpdateFruitTypeRequestDto request)
         {
-            var asset = await _context.FruitAssets
-                .Include(f => f.FruitsInImage)
-                .Where(a => a.Id == id)
-                .Select(a => new
-                {
-                    id = a.Id,
-                    title = a.Title,
-                    imagePath = a.ImagePath,
-                    isMultipleFruits = a.IsMultipleFruits,
-                    fruits = a.FruitsInImage.Select(f => new
-                    {
-                        id = f.Id,
-                        name = f.Name
-                    }).ToList()
-                })
-                .FirstOrDefaultAsync();
+            try
+            {
+                var result = await _assetsService.UpdateFruitTypeAsync(id, request.Name);
+                if (result == null)
+                    return NotFound(new { Message = "Güncellenmek istenen meyve türü bulunamadı." });
 
-            if (asset == null) return NotFound();
+                return Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Meyve türü güncellenirken hata oluştu.", Error = ex.Message });
+            }
+        }
 
-            return Ok(asset);
+        [HttpPatch("complete-generation")]
+        public async Task<IActionResult> CompleteVideoGeneration([FromBody] CompleteGenerationRequestDto request)
+        {
+            try
+            {
+                var result = await _assetsService.CompleteVideoGenerationAsync(
+                    request.VideoGenerationId,
+                    request.OutputVideoPath,
+                    request.AiGeneratedCaption);
+
+                if (result == null) return NotFound();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Video üretimi tamamlanırken hata oluştu.", Error = ex.Message });
+            }
         }
 
         [HttpPost("historical-videos")]
@@ -216,58 +229,23 @@ namespace ShakyFruits.API.Controllers
         {
             try
             {
-                // 1. Meyveyi nesne olarak veritabanından çek
-                var fruitAsset = await _context.FruitAssets.FindAsync(request.FruitAssetId);
-                if (fruitAsset == null)
-                    return BadRequest("Geçersiz FruitAssetId. Önce meyveyi sisteme eklemelisiniz.");
+                var result = await _generationService.AddHistoricalVideoAsync(
+                    request.FruitAssetId,
+                    request.ReferenceVideoId,
+                    request.IsRecreate,
+                    request.TargetUrl,
+                    request.OutputVideoPath,
+                    request.AiGeneratedCaption,
+                    request.IsPublished,
+                    request.Platform,
+                    request.PostUrl,
+                    request.PublishedAt);
 
-                // 2. VideoGeneration kaydını oluştur
-                var newGeneration = new VideoGeneration
-                {
-                    FruitAssetId = request.FruitAssetId,
-                    ReferenceVideoId = request.ReferenceVideoId,
-
-                    IsRecreate = request.IsRecreate, // <-- Artık sabit false değil, UI'dan geliyor
-                    TargetUrl = request.TargetUrl,   // <-- UI'dan geliyor
-
-                    AppliedPrompt = fruitAsset.GetAppliedFixPrompt(),
-                    TargetModel = "Bilinmiyor (Geçmiş Veri)",
-                    TargetResolution = "Bilinmiyor",
-                    Status = GenerationStatus.Completed,
-                    OutputVideoPath = request.OutputVideoPath,
-                    AiGeneratedCaption = request.AiGeneratedCaption
-                };
-
-                _context.VideoGenerations.Add(newGeneration);
-                await _context.SaveChangesAsync();
-
-                int? publishedVideoId = null;
-
-                // 3. Eğer video TikTok'ta yayınlandıysa PublishedVideo tablosuna da ekle
-                if (request.IsPublished && !string.IsNullOrWhiteSpace(request.PostUrl))
-                {
-                    var newPublished = new PublishedVideo
-                    {
-                        VideoGenerationId = newGeneration.Id,
-                        Platform = request.Platform,
-                        PostUrl = request.PostUrl,
-                        PublishedAt = request.PublishedAt ?? DateTime.UtcNow
-                    };
-
-                    _context.PublishedVideos.Add(newPublished);
-                    await _context.SaveChangesAsync();
-                    publishedVideoId = newPublished.Id;
-                }
-
-                return Ok(new
-                {
-                    message = "Geçmiş video sisteme başarıyla eklendi.",
-                    videoGenerationId = newGeneration.Id,
-                    publishedVideoId = publishedVideoId,
-                    outputVideoPath = newGeneration.OutputVideoPath,
-                    appliedPrompt = newGeneration.AppliedPrompt, // UI'da doğru atandığını görmek için
-                    isTrackedByScraper = publishedVideoId.HasValue
-                });
+                return Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
@@ -280,176 +258,32 @@ namespace ShakyFruits.API.Controllers
         {
             try
             {
-                var generation = await _context.VideoGenerations
-                    .Include(v => v.PublishedVideo)
-                    .FirstOrDefaultAsync(v => v.Id == id);
+                var result = await _generationService.UpdateHistoricalVideoAsync(
+                    id,
+                    request.FruitAssetId,
+                    request.ReferenceVideoId,
+                    request.IsRecreate,
+                    request.TargetUrl,
+                    request.OutputVideoPath,
+                    request.AiGeneratedCaption,
+                    request.IsPublished,
+                    request.Platform,
+                    request.PostUrl,
+                    request.PublishedAt);
 
-                if (generation == null)
+                if (result == null)
                     return NotFound(new { message = "Güncellenmek istenen video kaydı bulunamadı." });
 
-                if (generation.FruitAssetId != request.FruitAssetId)
-                {
-                    var fruitAsset = await _context.FruitAssets.FindAsync(request.FruitAssetId);
-                    if (fruitAsset == null)
-                        return BadRequest("Geçersiz FruitAssetId. Güncellenmek istenen meyve sistemde yok.");
-
-                    generation.AppliedPrompt = fruitAsset.GetAppliedFixPrompt();
-                }
-
-                if (request.ReferenceVideoId.HasValue && generation.ReferenceVideoId != request.ReferenceVideoId)
-                {
-                    var refVideoExists = await _context.ReferenceVideos.AnyAsync(r => r.Id == request.ReferenceVideoId.Value);
-                    if (!refVideoExists)
-                        return BadRequest("Geçersiz ReferenceVideoId. Sistemde böyle bir referans video yok.");
-                }
-
-                generation.FruitAssetId = request.FruitAssetId;
-                generation.ReferenceVideoId = request.ReferenceVideoId;
-                generation.IsRecreate = request.IsRecreate;
-                generation.TargetUrl = request.TargetUrl;
-                generation.OutputVideoPath = request.OutputVideoPath;
-                generation.AiGeneratedCaption = request.AiGeneratedCaption;
-
-                if (request.IsPublished)
-                {
-                    if (generation.PublishedVideo != null)
-                    {
-                        generation.PublishedVideo.Platform = request.Platform;
-                        generation.PublishedVideo.PostUrl = request.PostUrl;
-                        if (request.PublishedAt.HasValue)
-                            generation.PublishedVideo.PublishedAt = request.PublishedAt.Value;
-                    }
-                    else
-                    {
-                        generation.PublishedVideo = new PublishedVideo
-                        {
-                            Platform = request.Platform,
-                            PostUrl = request.PostUrl,
-                            PublishedAt = request.PublishedAt ?? DateTime.UtcNow
-                        };
-                    }
-                }
-                else
-                {
-                    if (generation.PublishedVideo != null)
-                    {
-                        _context.PublishedVideos.Remove(generation.PublishedVideo);
-                    }
-                }
-
-                await _context.SaveChangesAsync();
-
-                return Ok(new
-                {
-                    message = "Geçmiş video kaydı başarıyla güncellendi.",
-                    videoGenerationId = generation.Id,
-                    outputVideoPath = generation.OutputVideoPath,
-                    appliedPrompt = generation.AppliedPrompt,
-                    isPublished = request.IsPublished,
-                    platform = request.Platform,
-                    postUrl = request.PostUrl
-                });
+                return Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Video kaydı güncellenirken hata oluştu.", error = ex.Message });
             }
-        }
-
-        // 1. MEYVE GÖRSELİNİ GÜNCELLE
-        [HttpPut("fruits/{id}")]
-        public async Task<IActionResult> UpdateFruitAsset(int id, [FromBody] UpdateFruitAssetRequestDto request)
-        {
-            // Include ile var olan meyve türlerini de çekiyoruz ki güncelleyebilelim
-            var existingAsset = await _context.FruitAssets
-                .Include(f => f.FruitsInImage)
-                .FirstOrDefaultAsync(f => f.Id == id);
-
-            if (existingAsset == null)
-                return NotFound(new { Message = "Güncellenmek istenen meyve kaydı bulunamadı." });
-
-            // Yeni seçilen meyve türlerini bul
-            var updatedFruitTypes = await _context.FruitTypes
-                .Where(f => request.FruitTypeIds.Contains(f.Id))
-                .ToListAsync();
-
-            existingAsset.Title = request.Title;
-            existingAsset.ImagePath = request.ImagePath;
-            existingAsset.IsMultipleFruits = request.IsMultipleFruits;
-
-            // Çoka-çok ilişkiyi güncelle (Eskileri temizle, yenileri ekle)
-            existingAsset.FruitsInImage.Clear();
-            foreach (var type in updatedFruitTypes)
-            {
-                existingAsset.FruitsInImage.Add(type);
-            }
-
-            await _context.SaveChangesAsync();
-
-            // Döngü kırıcı formatta geri dön
-            return Ok(new
-            {
-                id = existingAsset.Id,
-                title = existingAsset.Title,
-                imagePath = existingAsset.ImagePath,
-                isMultipleFruits = existingAsset.IsMultipleFruits,
-                fruits = existingAsset.FruitsInImage.Select(f => new
-                {
-                    id = f.Id,
-                    name = f.Name
-                }).ToList()
-            });
-        }
-
-        // 2. REFERANS VİDEOYU GÜNCELLE
-        [HttpPut("reference-videos/{id}")]
-        public async Task<IActionResult> UpdateReferenceVideo(int id, [FromBody] UpdateReferenceVideoRequestDto request)
-        {
-            var existingVideo = await _context.ReferenceVideos.FindAsync(id);
-            if (existingVideo == null)
-                return NotFound(new { Message = "Güncellenmek istenen referans video bulunamadı." });
-
-            existingVideo.DanceStyle = request.DanceStyle;
-            existingVideo.SourceType = request.SourceType;
-            existingVideo.VideoPath = request.SourceType == ReferenceSourceType.LocalUpload ? request.VideoPath : null;
-            existingVideo.KlingSourceUrlOrId = request.SourceType == ReferenceSourceType.KlingRecreate ? request.KlingSourceUrlOrId : null;
-
-            await _context.SaveChangesAsync();
-
-            return Ok(new
-            {
-                id = existingVideo.Id,
-                danceStyle = existingVideo.DanceStyle,
-                sourceType = existingVideo.SourceType.ToString(),
-                videoPath = existingVideo.VideoPath,
-                klingSourceUrlOrId = existingVideo.KlingSourceUrlOrId
-            });
-        }
-
-        // 3. MEYVE TÜRÜNÜ (SÖZLÜK) GÜNCELLE
-        [HttpPut("fruit-types/{id}")]
-        public async Task<IActionResult> UpdateFruitType(int id, [FromBody] UpdateFruitTypeRequestDto request)
-        {
-            if (string.IsNullOrWhiteSpace(request.Name))
-                return BadRequest("Meyve adı boş olamaz.");
-
-            var existingType = await _context.FruitTypes.FindAsync(id);
-            if (existingType == null)
-                return NotFound(new { Message = "Güncellenmek istenen meyve türü bulunamadı." });
-
-            // İsim değiştirilirken, aynı isimde BAŞKA bir kayıt var mı diye kontrol et
-            var exists = await _context.FruitTypes.AnyAsync(f => f.Id != id && f.Name.ToLower() == request.Name.ToLower());
-            if (exists)
-                return BadRequest($"'{request.Name}' türü sistemde zaten kayıtlı.");
-
-            existingType.Name = request.Name;
-            await _context.SaveChangesAsync();
-
-            return Ok(new
-            {
-                id = existingType.Id,
-                name = existingType.Name
-            });
         }
     }
 }

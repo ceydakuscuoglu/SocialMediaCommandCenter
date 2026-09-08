@@ -37,6 +37,10 @@ builder.Services.Configure<ShakyFruits.Core.Settings.AssetPathOptions>(
 
 builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
+builder.Services.AddScoped<IPublishService, PublishService>();
+builder.Services.AddScoped<IGenerationService, GenerationService>();
+builder.Services.AddScoped<IAssetsService, AssetsService>();
+builder.Services.AddScoped<IKlingBotService, KlingBotService>();
 builder.Services.AddScoped<SocialMediaScraperService>();
 builder.Services.AddSingleton<KlingAiBotService>();
 // 3. Controller Sınıflarını ve Swagger Arayüzünü Sisteme Tanıtma
