@@ -44,7 +44,7 @@ import { getFileName, formatDate } from "@/utils/formatters";
 import { JobStatusBadge } from "./JobStatusBadge";
 import { useJobs } from "@/hooks/useJobs";
 import { Command } from '@tauri-apps/plugin-shell';
-import { deleteJob, GenerationStatus } from "@/api/jobs.api";
+import { deleteJob } from "@/api/jobs.api";
 import { useState } from "react";
 import { UpdateJobModal } from "@/components/pipeline/UpdateJobModal";
 

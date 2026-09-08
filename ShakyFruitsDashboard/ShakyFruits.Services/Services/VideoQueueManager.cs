@@ -1,10 +1,13 @@
-﻿using System.Threading.Channels;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Channels;
+using System.Threading.Tasks;
+using ShakyFruits.Core.Interfaces;
 
-namespace ShakyFruits.Core.Services
+namespace ShakyFruits.Services
 {
-    public class VideoQueueManager
+    public class VideoQueueManager : IVideoQueueManager
     {
-        // Artık sadece ID taşıyoruz!
         private readonly Channel<int> _queue;
 
         public VideoQueueManager()

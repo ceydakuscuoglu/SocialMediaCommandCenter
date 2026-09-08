@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ShakyFruits.API.Workers;
 using ShakyFruits.Core.Interfaces;
-using ShakyFruits.Core.Services;
 using ShakyFruits.Data;
 using ShakyFruits.Services;
 
@@ -36,16 +35,22 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.Configure<ShakyFruits.Core.Settings.AssetPathOptions>(
     builder.Configuration.GetSection("AssetPaths"));
 
+builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
+builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 builder.Services.AddScoped<SocialMediaScraperService>();
 builder.Services.AddSingleton<KlingAiBotService>();
-//builder.Services.AddScoped<ShakyFruits.Services.KlingAiBotService>();
 // 3. Controller Sınıflarını ve Swagger Arayüzünü Sisteme Tanıtma
-builder.Services.AddControllers(); // FruitsController'ı bulmasını sağlar
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(); // Görsel arayüz altyapısı
 
 // 1. Queue Manager'ı Singleton olarak ekliyoruz (Uygulamada tek bir kuyruk örneği olmalı)
-builder.Services.AddSingleton<VideoQueueManager>();
+builder.Services.AddSingleton<IVideoQueueManager, VideoQueueManager>();
+builder.Services.AddSingleton<VideoQueueManager>(sp => (VideoQueueManager)sp.GetRequiredService<IVideoQueueManager>());
 
 // 2. Arka plan işçimizi (BackgroundService) sisteme barındırılan servis olarak kaydediyoruz
 builder.Services.AddHostedService<KlingWorkerService>();

@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { prepareJob, confirmJob, PrepareResponse, ConfirmPayload } from "@/api/jobs.api";
+import { prepareJob, confirmJob, PrepareResponse } from "@/api/jobs.api";
 import { fetchFruitAssets, fetchReferenceVideos } from "@/api/assets.api"; // YENİ IMPORT
 
 export function NewJobDialog() {

@@ -2,7 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchInternalStats, fetchAllVideosLatestStats, fetchPublishedVideos } from "@/api/analytics.api";
 import { VideoPerformanceChart } from "@/components/analytics/VideoPerformanceChart";
-import { PublishVideoModal } from "@/components/analytics/PublishVideoModal";
+import { TrackVideoModal } from "@/components/analytics/TrackVideoModal";
 import { PublishedVideosTable } from "@/components/analytics/PublishedVideosTable"; // YENİ IMPORT
 import {
   Card,
@@ -173,7 +173,7 @@ export function Analytics() {
           </div>
 
           {/* URL EKLEME BUTONU TABLO BAŞLIĞINDA */}
-          <PublishVideoModal />
+          <TrackVideoModal />
         </div>
 
         {/* Tabloya yeni hızlı veriyi gönderiyoruz */}

@@ -1,4 +1,4 @@
-import { AdvancedInsights } from "@/components/analytics/AdvancedInsights";
+import { AdvancedInsights } from "@/components/strategy/AdvancedInsights";
 import { BrainCircuit } from "lucide-react";
 
 export function Strategy() {

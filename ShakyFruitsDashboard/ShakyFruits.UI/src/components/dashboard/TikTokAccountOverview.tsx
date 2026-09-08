@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchAccountHistory, SocialPlatform } from "@/api/analytics.api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, ArrowUpRight, ArrowDownRight, Activity, Eye, MessageCircle, Share2, CircleDollarSign, Minus, Heart } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, PlayCircle, Eye, MessageCircle, Share2, CircleDollarSign, Minus, Heart } from "lucide-react";
 
 const formatK = (num: number) => {
   if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
@@ -9,10 +9,12 @@ const formatK = (num: number) => {
   return num.toString();
 };
 
-export function InstagramAccountOverview() {
+export function TikTokAccountOverview() {
+  // TikTokProfileCard.tsx ve TikTokAccountOverview.tsx içinde:
 const { data: history, isLoading } = useQuery({
-    queryKey: ["account-history", "instagram"],
-    queryFn: () => fetchAccountHistory(SocialPlatform.Instagram),
+    queryKey: ["account-history", "tiktok"],
+    // Ok fonksiyonu ZORUNLUDUR, yoksa React Query obje yollar
+    queryFn: () => fetchAccountHistory(SocialPlatform.TikTok), 
   });
 
   if (isLoading) return null;
@@ -52,18 +54,17 @@ const { data: history, isLoading } = useQuery({
     <Card className="w-full h-full flex flex-col border-border/40 shadow-sm bg-card">
       <CardHeader className="pb-4">
         <CardTitle className="text-sm font-medium text-muted-foreground flex justify-between">
-          <span>Instagram 7-Day Performance</span>
+          <span>TikTok 7-Day Performance</span>
         </CardTitle>
       </CardHeader>
       
       <CardContent className="flex-1 flex flex-col">
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 h-full">
           
-          {/* Instagram'da İzlenme yerine Erişim (Reach) kullanılır */}
           <div className="flex flex-col justify-center p-4 rounded-xl border border-border/50 bg-muted/20">
             <div className="flex justify-between items-start mb-1">
-              <span className="text-xs font-medium text-muted-foreground">Erişim (Reach)</span>
-              <Activity className="w-4 h-4 text-orange-500" />
+              <span className="text-xs font-medium text-muted-foreground">İzlenmeler</span>
+              <PlayCircle className="w-4 h-4 text-cyan-500" />
             </div>
             <span className="text-xl font-bold">{formatK(latest.totalVideoViews)}</span>
             {renderTrend(latest.totalVideoViews, previous?.totalVideoViews)}
@@ -72,17 +73,16 @@ const { data: history, isLoading } = useQuery({
           <div className="flex flex-col justify-center p-4 rounded-xl border border-border/50 bg-muted/20">
             <div className="flex justify-between items-start mb-1">
               <span className="text-xs font-medium text-muted-foreground">Profil Ziyareti</span>
-              <Eye className="w-4 h-4 text-purple-500" />
+              <Eye className="w-4 h-4 text-indigo-500" />
             </div>
             <span className="text-xl font-bold">{formatK(latest.profileViews)}</span>
             {renderTrend(latest.profileViews, previous?.profileViews)}
           </div>
 
-          {/* Instagram'da Beğeniler yerine Etkileşim (Interactions) kapsamlıdır */}
           <div className="flex flex-col justify-center p-4 rounded-xl border border-border/50 bg-muted/20">
             <div className="flex justify-between items-start mb-1">
-              <span className="text-xs font-medium text-muted-foreground">Etkileşim (Interactions)</span>
-              <Heart className="w-4 h-4 text-pink-500" />
+              <span className="text-xs font-medium text-muted-foreground">Beğeniler</span>
+              <Heart className="w-4 h-4 text-rose-500" />
             </div>
             <span className="text-xl font-bold">{formatK(latest.totalLikes)}</span>
             {renderTrend(latest.totalLikes, previous?.totalLikes)}

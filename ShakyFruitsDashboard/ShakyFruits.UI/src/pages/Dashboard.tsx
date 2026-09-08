@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchCredits } from "@/api/jobs.api";
 import { KlingCreditCard } from "@/components/dashboard/KlingCreditCard";
-import { TikTokProfileCard } from "@/components/analytics/TikTokProfileCard";
-import { InstagramProfileCard } from "@/components/analytics/InstagramProfileCard"; // YENİ EKLENDİ
-import { TikTokAccountOverview } from "@/components/analytics/TikTokAccountOverview";
-import { InstagramAccountOverview } from "@/components/analytics/InstagramAccountOverview"; // YENİ EKLENDİ
+import { TikTokProfileCard } from "@/components/dashboard/TikTokProfileCard";
+import { InstagramProfileCard } from "@/components/dashboard/InstagramProfileCard";
+import { TikTokAccountOverview } from "@/components/dashboard/TikTokAccountOverview";
+import { InstagramAccountOverview } from "@/components/dashboard/InstagramAccountOverview";
 import { AccountGrowthChart } from "@/components/dashboard/AccountGrowthChart";
 import { LayoutDashboard } from "lucide-react";
 

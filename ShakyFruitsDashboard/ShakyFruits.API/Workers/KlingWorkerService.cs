@@ -1,24 +1,23 @@
-﻿using Microsoft.EntityFrameworkCore; // Include() fonksiyonu için gerekli
-using Microsoft.Extensions.DependencyInjection; // IServiceScopeFactory için gerekli
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ShakyFruits.Core.Enums;
-using ShakyFruits.Core.Services;
+using ShakyFruits.Core.Interfaces;
 using ShakyFruits.Services;
 using ShakyFruits.Data;
-// DbContext'inin bulunduğu namespace'i (Örn: ShakyFruits.Data) eklemeyi unutma
 
 namespace ShakyFruits.API.Workers
 {
     public class KlingWorkerService : BackgroundService
     {
-        private readonly VideoQueueManager _queueManager;
+        private readonly IVideoQueueManager _queueManager;
         private readonly KlingAiBotService _botService;
-        private readonly IServiceScopeFactory _scopeFactory; // EF Core bağlantısı için
+        private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<KlingWorkerService> _logger;
 
         public KlingWorkerService(
-            VideoQueueManager queueManager,
+            IVideoQueueManager queueManager,
             KlingAiBotService botService,
             IServiceScopeFactory scopeFactory,
             ILogger<KlingWorkerService> logger)

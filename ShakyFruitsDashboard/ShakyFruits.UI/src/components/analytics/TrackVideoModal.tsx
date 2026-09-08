@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Link, Loader2, Plus } from "lucide-react";
 
-export function PublishVideoModal() {
+export function TrackVideoModal() {
   const [open, setOpen] = useState(false);
   const [generationId, setGenerationId] = useState("");
   const [url, setUrl] = useState("");

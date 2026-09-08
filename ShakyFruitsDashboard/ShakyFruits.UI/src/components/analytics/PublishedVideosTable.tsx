@@ -5,7 +5,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { forceRefreshVideoStats, PublishedVideoLatest } from "@/api/analytics.api";
-import { ExternalLink, TrendingUp, VideoOff, RefreshCw, CheckCircle2 } from "lucide-react";
+import { ExternalLink, TrendingUp, VideoOff, RefreshCw } from "lucide-react";
 
 interface PublishedVideosTableProps {
   videos?: PublishedVideoLatest[];

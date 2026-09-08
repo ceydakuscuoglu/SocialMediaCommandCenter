@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using Microsoft.Playwright;
 using ShakyFruits.Core.Entities;
 using ShakyFruits.Core.Enums;
@@ -336,7 +336,7 @@ namespace ShakyFruits.Services
             return "0"; // Hiçbir kombinasyon çalışmazsa 0 dön
         }
 
-        public async Task<AudienceDemographics> GetLiveDemographicsAsync()
+        public async Task<object?> GetLiveDemographicsAsync()
         {
             string userDataDir = Path.Combine(Directory.GetCurrentDirectory(), "BrowserData");
 
@@ -410,7 +410,7 @@ namespace ShakyFruits.Services
 
                 // System.Text.Json ile string'i güvenle C# modeline dönüştürüyoruz
                 var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                var demographics = System.Text.Json.JsonSerializer.Deserialize<AudienceDemographics>(jsonResult, options);
+                var demographics = System.Text.Json.JsonSerializer.Deserialize<object>(jsonResult, options);
 
                 return demographics;
             }
@@ -418,6 +418,85 @@ namespace ShakyFruits.Services
             {
                 await page.ScreenshotAsync(new PageScreenshotOptions { Path = "meta_demographics_hata.png" });
                 throw new Exception("Canlı demografi kazıması başarısız. Hata: " + ex.Message);
+            }
+            finally
+            {
+                await page.CloseAsync();
+            }
+        }
+
+        public async Task<object> GetTikTokDailyTrendsAsync()
+        {
+            string userDataDir = Path.Combine(Directory.GetCurrentDirectory(), "BrowserData");
+
+            using var playwright = await Playwright.CreateAsync();
+            await using var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
+            {
+                Headless = false, // İlk denemede pop-up vs. gelirse görmek için false yapıyoruz
+                Channel = "chrome",
+                Args = new[] { "--disable-blink-features=AutomationControlled" }
+            });
+
+            var page = await browserContext.NewPageAsync();
+
+            try
+            {
+                _logger.LogInformation("TikTok Trend Hashtag'leri çekiliyor...");
+                await page.GotoAsync("https://ads.tiktok.com/business/creativecenter/inspiration/popular/hashtag/pc/en",
+                    new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle, Timeout = 60000 });
+                await Task.Delay(5000); // Tabloların render olması için
+
+                // Hashtag'leri JS ile topla
+                var hashtagsJson = await page.EvaluateAsync<string>(@"() => {
+            let items = Array.from(document.querySelectorAll('.CardPc_container__2RQk9')).slice(0, 10);
+            return JSON.stringify(items.map((el, i) => {
+                let nameEl = el.querySelector('.CardPc_titleText__1qEwS');
+                return { 
+                    Name: nameEl ? nameEl.innerText.trim() : '', 
+                    Rank: (i + 1).toString() 
+                };
+            }).filter(x => x.Name !== ''));
+        }");
+
+                _logger.LogInformation("TikTok Trend Müzikleri çekiliyor...");
+                await page.GotoAsync("https://ads.tiktok.com/business/creativecenter/inspiration/popular/music/pc/en",
+                    new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle, Timeout = 60000 });
+                await Task.Delay(5000);
+
+                // Şarkıları JS ile topla
+                var songsJson = await page.EvaluateAsync<string>(@"() => {
+            let items = Array.from(document.querySelectorAll('.SoundCard_container__2U3uB')).slice(0, 10);
+            return JSON.stringify(items.map((el, i) => {
+                let titleEl = el.querySelector('.SoundCard_soundTitle__2jR3o');
+                let authorEl = el.querySelector('.SoundCard_author__1aMv-');
+                return { 
+                    Title: titleEl ? titleEl.innerText.trim() : '', 
+                    Author: authorEl ? authorEl.innerText.trim() : '',
+                    Rank: (i + 1).toString() 
+                };
+            }).filter(x => x.Title !== ''));
+        }");
+
+                // System.Text.Json ile C# nesnelerine dönüştür
+                var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+                var hashtags = System.Text.Json.JsonSerializer.Deserialize<object>(hashtagsJson, options);
+                var songs = System.Text.Json.JsonSerializer.Deserialize<object>(songsJson, options);
+
+                // Not: Video trendleri sayfasının URL'si bölgeye göre değişebilir, şimdilik boş bırakıyoruz, 
+                // ana mantık oturduktan sonra buraya eklenebilir.
+
+                return new
+                {
+                    trendingHashtags = hashtags,
+                    trendingSongs = songs,
+                    trendingVideos = new List<object>()
+                };
+            }
+            catch (Exception ex)
+            {
+                await page.ScreenshotAsync(new PageScreenshotOptions { Path = "tiktok_trends_hata.png" });
+                throw new Exception("TikTok trendleri kazılamadı. Hata: " + ex.Message);
             }
             finally
             {

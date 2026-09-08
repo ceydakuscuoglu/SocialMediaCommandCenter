@@ -1,12 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ShakyFruits.API.DTOs;
 using ShakyFruits.Core.Constants;
 using ShakyFruits.Core.Entities;
 using ShakyFruits.Core.Enums;
 using ShakyFruits.Core.Helpers;
+using ShakyFruits.Core.Interfaces;
 using ShakyFruits.Core.Models;
-using ShakyFruits.Core.Services;
 using ShakyFruits.Services;
 using ShakyFruits.Data;
 using System.IO;
@@ -20,43 +20,23 @@ namespace ShakyFruits.API.Controllers
     public class KlingAIBotController : ControllerBase
     {
         private readonly KlingAiBotService _botService;
-        private readonly VideoQueueManager _queueManager; // KUYRUK YÖNETİCİSİ EKLENDİ
+        private readonly IVideoQueueManager _queueManager;
         private readonly ApplicationDbContext _context;
         private readonly IMemoryCache _cache;
+        private readonly IFileStorageService _fileStorageService;
 
         public KlingAIBotController(
             KlingAiBotService botService,
-            VideoQueueManager queueManager,
+            IVideoQueueManager queueManager,
             ApplicationDbContext context,
-            IMemoryCache cache) // <-- YENİ PARAMETRE
+            IMemoryCache cache,
+            IFileStorageService fileStorageService)
         {
             _botService = botService;
             _queueManager = queueManager;
-            _context = context; // <-- ATAMA YAPILIYOR
+            _context = context;
             _cache = cache;
-        }
-
-        private async Task<string> SaveFileAsync(IFormFile file, string folderName)
-        {
-            if (file == null || file.Length == 0)
-                return string.Empty;
-
-            // Projenin çalıştığı dizinde "Uploads/Images" veya "Uploads/Videos" klasörleri oluşturur
-            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "Uploads", folderName);
-
-            if (!Directory.Exists(uploadsFolder))
-                Directory.CreateDirectory(uploadsFolder);
-
-            // Dosya isminin çakışmaması için benzersiz (Guid) bir isim veriyoruz
-            var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
-            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-            using (var fileStream = new FileStream(filePath, FileMode.Create))
-            {
-                await file.CopyToAsync(fileStream);
-            }
-
-            return filePath; // Botun kullanacağı fiziksel dosya yolunu (Örn: C:\...\Uploads\Images\abc.png) döndürür
+            _fileStorageService = fileStorageService;
         }
 
 
@@ -78,7 +58,7 @@ namespace ShakyFruits.API.Controllers
                 }
                 else if (request.FruitImage != null)
                 {
-                    tempImagePath = await SaveFileAsync(request.FruitImage, "Temp");
+                    tempImagePath = await _fileStorageService.SaveFileAsync(request.FruitImage.OpenReadStream(), request.FruitImage.FileName, "Temp");
                     finalImagePath = tempImagePath; // Temp'teki geçici yol
                 }
                 else
@@ -101,7 +81,7 @@ namespace ShakyFruits.API.Controllers
                     }
                     else if (request.ReferenceVideo != null)
                     {
-                        tempVideoPath = await SaveFileAsync(request.ReferenceVideo, "Temp");
+                        tempVideoPath = await _fileStorageService.SaveFileAsync(request.ReferenceVideo.OpenReadStream(), request.ReferenceVideo.FileName, "Temp");
                         finalVideoPath = tempVideoPath;
                     }
                     else

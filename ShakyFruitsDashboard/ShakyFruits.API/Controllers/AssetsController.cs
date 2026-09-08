@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using ShakyFruits.API.DTOs;
@@ -272,6 +272,87 @@ namespace ShakyFruits.API.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { Message = "Geçmiş video eklenirken hata oluştu.", Error = ex.Message });
+            }
+        }
+
+        [HttpPut("historical-videos/{id}")]
+        public async Task<IActionResult> UpdateHistoricalVideo(int id, [FromBody] UpdateHistoricalVideoRequestDto request)
+        {
+            try
+            {
+                var generation = await _context.VideoGenerations
+                    .Include(v => v.PublishedVideo)
+                    .FirstOrDefaultAsync(v => v.Id == id);
+
+                if (generation == null)
+                    return NotFound(new { message = "Güncellenmek istenen video kaydı bulunamadı." });
+
+                if (generation.FruitAssetId != request.FruitAssetId)
+                {
+                    var fruitAsset = await _context.FruitAssets.FindAsync(request.FruitAssetId);
+                    if (fruitAsset == null)
+                        return BadRequest("Geçersiz FruitAssetId. Güncellenmek istenen meyve sistemde yok.");
+
+                    generation.AppliedPrompt = fruitAsset.GetAppliedFixPrompt();
+                }
+
+                if (request.ReferenceVideoId.HasValue && generation.ReferenceVideoId != request.ReferenceVideoId)
+                {
+                    var refVideoExists = await _context.ReferenceVideos.AnyAsync(r => r.Id == request.ReferenceVideoId.Value);
+                    if (!refVideoExists)
+                        return BadRequest("Geçersiz ReferenceVideoId. Sistemde böyle bir referans video yok.");
+                }
+
+                generation.FruitAssetId = request.FruitAssetId;
+                generation.ReferenceVideoId = request.ReferenceVideoId;
+                generation.IsRecreate = request.IsRecreate;
+                generation.TargetUrl = request.TargetUrl;
+                generation.OutputVideoPath = request.OutputVideoPath;
+                generation.AiGeneratedCaption = request.AiGeneratedCaption;
+
+                if (request.IsPublished)
+                {
+                    if (generation.PublishedVideo != null)
+                    {
+                        generation.PublishedVideo.Platform = request.Platform;
+                        generation.PublishedVideo.PostUrl = request.PostUrl;
+                        if (request.PublishedAt.HasValue)
+                            generation.PublishedVideo.PublishedAt = request.PublishedAt.Value;
+                    }
+                    else
+                    {
+                        generation.PublishedVideo = new PublishedVideo
+                        {
+                            Platform = request.Platform,
+                            PostUrl = request.PostUrl,
+                            PublishedAt = request.PublishedAt ?? DateTime.UtcNow
+                        };
+                    }
+                }
+                else
+                {
+                    if (generation.PublishedVideo != null)
+                    {
+                        _context.PublishedVideos.Remove(generation.PublishedVideo);
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    message = "Geçmiş video kaydı başarıyla güncellendi.",
+                    videoGenerationId = generation.Id,
+                    outputVideoPath = generation.OutputVideoPath,
+                    appliedPrompt = generation.AppliedPrompt,
+                    isPublished = request.IsPublished,
+                    platform = request.Platform,
+                    postUrl = request.PostUrl
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Video kaydı güncellenirken hata oluştu.", error = ex.Message });
             }
         }
 

@@ -1,3 +1,5 @@
+import { apiFetch } from "./client";
+
 // --- TYPES ---
 
 export interface InternalStats {
@@ -63,24 +65,28 @@ export interface LatestAccountStats {
   totalShares: number;
   estimatedRewards: number;
   recordedAt: string;
-  source: string;
+  followerGrowth?: number;
+  viewsGrowth?: number;
 }
 
-export interface VideoStatsSnapshot {
-  views: number;
-  likes: number;
-  comments: number;
-  shares: number;
-  favorites: number;
-  recordedAt: string;
-}
+export type VideoStatsSnapshot = VideoAnalyticsSnapshot;
 
 export interface PublishedVideoLatest {
+  id?: number;
   videoId: number;
-  platform: string;
+  videoGenerationId?: number;
+  platform: string | number;
   postUrl: string;
   publishedAt: string;
-  latestStats: VideoStatsSnapshot | null;
+  fruitTitle?: string;
+  danceStyle?: string;
+  latestStats?: VideoAnalyticsSnapshot | null;
+  views?: number;
+  likes?: number;
+  comments?: number;
+  shares?: number;
+  favorites?: number;
+  lastScrapedAt?: string;
 }
 
 export interface LeaderboardItem {
@@ -135,154 +141,93 @@ export interface LifespanItem {
   activeLifespanDays: number;
 }
 
-// Platform Enum (C# backend ile aynı sırada olmalı)
+// Platform Enum
 export enum SocialPlatform {
   TikTok = 1,
   Instagram = 2
 }
 
 // --- GET İSTEKLERİ ---
-export const fetchLeaderboards = async (): Promise<{ fruitLeaderboard: LeaderboardItem[], danceLeaderboard: LeaderboardItem[] }> => {
-  const res = await fetch(`${API_BASE_URL}/leaderboards`);
-  if (!res.ok) throw new Error("Liderlik tabloları alınamadı.");
-  return res.json();
-};
-
-export const fetchSoloVsGroup = async (): Promise<SoloVsGroupStats[]> => {
-  const res = await fetch(`${API_BASE_URL}/solo-vs-group`);
-  if (!res.ok) throw new Error("Solo vs Grup verileri alınamadı.");
-  return res.json();
-};
-
-export const fetchEngagementMetrics = async (): Promise<{ accountAverages: any, topEngagingVideos: EngagementVideo[] }> => {
-  const res = await fetch(`${API_BASE_URL}/engagement-metrics`);
-  if (!res.ok) throw new Error("Etkileşim metrikleri alınamadı.");
-  return res.json();
-};
-
-export const fetchFruitCombinations = async (): Promise<FruitCombination[]> => {
-  const res = await fetch(`${API_BASE_URL}/fruit-combinations`);
-  if (!res.ok) throw new Error("Kombinasyon analizi alınamadı.");
-  return res.json();
-};
-
-export const fetchLifecycleInsights = async (): Promise<{ lifespanLeaderboard: LifespanItem[], lateBloomers: LateBloomer[] }> => {
-  const res = await fetch(`${API_BASE_URL}/lifecycle-insights`);
-  if (!res.ok) throw new Error("Yaşam döngüsü içgörüleri alınamadı.");
-  return res.json();
-};
-
-// --- POST İSTEĞİ (CSV YÜKLEME) ---
-export const generateGoldenHours = async (file: File) => {
-  const formData = new FormData();
-  formData.append("file", file);
-
-  const res = await fetch(`${API_BASE_URL}/golden-hours-heatmap`, {
-    method: "POST",
-    body: formData,
-  });
-  if (!res.ok) throw new Error("Isı haritası oluşturulamadı.");
-  return res.json();
-};
-
-// 1. GET: Hesap Geçmişi (Genel Bakış Kartlarındaki Trendler İçin)
-// 1. GET: Hesap Geçmişi (Genel Bakış Kartlarındaki Trendler İçin)
-export const fetchAccountHistory = async (platform?: SocialPlatform | any) => {
-  let url = `${API_BASE_URL}/account-history`;
-  
-  // KESİN ÇÖZÜM: Gelen parametre "SADECE" bir sayıysa (1 veya 2) işlem yap.
-  // React Query'nin gönderdiği obje tuzaklarını (object Object / undefined) tamamen yok sayar.
-  if (typeof platform === "number") {
-    const platformString = SocialPlatform[platform]; 
-    if (platformString) {
-      url += `?platform=${platformString}`;
-    }
-  }
-
-  const res = await fetch(url);
-  if (!res.ok) {
-    const err = await res.json().catch(() => null);
-    throw new Error(err?.title || err?.Message || "Hesap geçmişi alınamadı.");
-  }
-  return res.json();
-};
-
-// 2. GET: TikTok Son İstatistikler (TikTok Profil Kartı İçin)
-export const fetchTikTokStats = async () => {
-  const res = await fetch(`${API_BASE_URL}/tiktok/latest-account-stats`);
-  if (!res.ok) throw new Error("TikTok istatistikleri alınamadı.");
-  return res.json(); // C# backend'in { source, data } formatında dönüyor
-};
-
-// 3. GET: Instagram Son İstatistikler (Instagram Profil Kartı İçin)
-export const fetchInstagramStats = async () => {
-  const res = await fetch(`${API_BASE_URL}/instagram/latest-account-stats`);
-  if (!res.ok) throw new Error("Instagram istatistikleri alınamadı.");
-  return res.json(); // C# backend'in { source, data } formatında dönüyor
-};
-
-// --- API SERVICES ---
-
-// Backend portunu (örn: 5290) kendi sistemine göre güncelle
-const API_BASE_URL = "http://localhost:5290/api/Analytics";
 
 export const fetchInternalStats = async (): Promise<InternalStats> => {
-  const response = await fetch(`${API_BASE_URL}/internal-stats`);
-  if (!response.ok) throw new Error("İçgörü (Internal Stats) verileri alınamadı.");
-  return response.json();
+  return apiFetch<InternalStats>("/Analytics/internal-stats");
 };
 
-// GET isteği olduğu için URL'e query parameter olarak ekliyoruz
 export const testTikTokScraper = async (url: string): Promise<ScraperTestResult> => {
-  const response = await fetch(`${API_BASE_URL}/test-tiktok-scraper?url=${encodeURIComponent(url)}`);
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(errorData?.message || "Kazıma işlemi başarısız oldu.");
-  }
-
-  return response.json();
+  return apiFetch<ScraperTestResult>(`/Analytics/test-tiktok-scraper?url=${encodeURIComponent(url)}`);
 };
 
 export const fetchPublishedVideos = async (): Promise<PublishedVideo[]> => {
-  const response = await fetch(`${API_BASE_URL}/published-videos`);
-  if (!response.ok) throw new Error("Yayınlanan videolar alınamadı.");
-  return response.json();
+  return apiFetch<PublishedVideo[]>("/Analytics/published-videos");
 };
 
 export const addPublishedVideo = async (payload: { videoGenerationId: number; postUrl: string }): Promise<void> => {
-  const response = await fetch(`${API_BASE_URL}/publish-video`, {
+  return apiFetch<void>("/Analytics/track-video", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-
-  if (!response.ok) {
-    const errData = await response.json().catch(() => null);
-    throw new Error(errData?.message || "Video sisteme eklenirken bir hata oluştu.");
-  }
 };
 
-// 1. Dashboard Tablosu İçin Hızlı Yükleme (Liste)
 export const fetchAllVideosLatestStats = async (): Promise<PublishedVideoLatest[]> => {
-  const response = await fetch(`${API_BASE_URL}/videos/latest-stats`);
-  if (!response.ok) throw new Error("Video listesi alınamadı.");
-  return response.json();
+  return apiFetch<PublishedVideoLatest[]>("/Analytics/videos/latest-stats");
 };
 
-// 2. Tablo Satırındaki "Yenile" Butonu İçin (Zorla Yenileme)
 export const forceRefreshVideoStats = async (videoId: number): Promise<any> => {
-  const response = await fetch(`${API_BASE_URL}/videos/${videoId}/force-refresh`, {
-    method: "POST"
+  return apiFetch(`/Analytics/videos/${videoId}/force-refresh`, {
+    method: "POST",
   });
-  if (!response.ok) throw new Error("Video verileri yenilenemedi.");
-  return response.json();
 };
 
-// 3. Hesap Özeti İçin Akıllı Cache
+export const fetchAccountHistory = async (platform?: SocialPlatform | any) => {
+  let endpoint = "/Analytics/account-history";
+  if (typeof platform === "number") {
+    const platformString = SocialPlatform[platform];
+    if (platformString) {
+      endpoint += `?platform=${platformString}`;
+    }
+  }
+  return apiFetch(endpoint);
+};
+
+export const fetchTikTokStats = async () => {
+  return apiFetch("/Analytics/tiktok/latest-account-stats");
+};
+
+export const fetchInstagramStats = async () => {
+  return apiFetch("/Analytics/instagram/latest-account-stats");
+};
+
 export const fetchLatestAccountStats = async (): Promise<LatestAccountStats> => {
-  const response = await fetch(`${API_BASE_URL}/latest-account-stats`);
-  if (!response.ok) throw new Error("Hesap verileri alınamadı.");
-  return response.json();
+  return apiFetch<LatestAccountStats>("/Analytics/latest-account-stats");
 };
 
+export const fetchLeaderboards = async (): Promise<{ fruitLeaderboard: LeaderboardItem[]; danceLeaderboard: LeaderboardItem[] }> => {
+  return apiFetch("/Analytics/leaderboards");
+};
+
+export const fetchSoloVsGroup = async (): Promise<SoloVsGroupStats[]> => {
+  return apiFetch<SoloVsGroupStats[]>("/Analytics/solo-vs-group");
+};
+
+export const fetchEngagementMetrics = async (): Promise<{ accountAverages: any; topEngagingVideos: EngagementVideo[] }> => {
+  return apiFetch("/Analytics/engagement-metrics");
+};
+
+export const fetchFruitCombinations = async (): Promise<FruitCombination[]> => {
+  return apiFetch<FruitCombination[]>("/Analytics/fruit-combinations");
+};
+
+export const fetchLifecycleInsights = async (): Promise<{ lifespanLeaderboard: LifespanItem[]; lateBloomers: LateBloomer[] }> => {
+  return apiFetch("/Analytics/lifecycle-insights");
+};
+
+export const generateGoldenHours = async (file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  return apiFetch("/Analytics/golden-hours-heatmap", {
+    method: "POST",
+    body: formData,
+  });
+};

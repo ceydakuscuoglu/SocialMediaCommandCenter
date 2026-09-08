@@ -1,12 +1,9 @@
-﻿namespace ShakyFruits.API.DTOs
+namespace ShakyFruits.API.DTOs
 {
-    namespace ShakyFruits.API.DTOs
+    public class FollowerActivityRecordDto 
     {
-        public class FollowerActivityRecord
-        {
-            public string Date { get; set; }
-            public string Hour { get; set; }
-            public int ActiveFollowers { get; set; }
-        }
+        public string Date { get; set; } = string.Empty;
+        public string Hour { get; set; } = string.Empty;
+        public int ActiveFollowers { get; set; }
     }
 }

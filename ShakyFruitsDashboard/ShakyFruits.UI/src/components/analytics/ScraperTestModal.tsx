@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Eye, Heart, MessageCircle, Share2, Bookmark, Search, Loader2 } from "lucide-react";
+import { Eye, Heart, MessageCircle, Bookmark, Search, Loader2 } from "lucide-react";
 
 export function ScraperTestModal() {
   const [url, setUrl] = useState("");
