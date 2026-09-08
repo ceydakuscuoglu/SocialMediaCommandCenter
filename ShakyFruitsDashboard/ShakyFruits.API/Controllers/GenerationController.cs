@@ -207,5 +207,72 @@ namespace ShakyFruits.API.Controllers
                 return StatusCode(500, new { message = "Video kaydı güncellenirken hata oluştu.", error = ex.Message });
             }
         }
+
+        [HttpGet]
+        [HttpGet("generations")]
+        public async Task<IActionResult> GetGenerations()
+        {
+            try
+            {
+                var history = await _context.VideoGenerations
+                  .Include(v => v.FruitAsset)
+                  .Include(v => v.ReferenceVideo)
+                  .Include(v => v.PublishedVideo)
+                  .OrderByDescending(v => v.CreatedAt)
+                  .Select(v => new VideoGenerationListDto
+                  {
+                      Id = v.Id,
+                      FruitImagePath = v.FruitAsset.ImagePath,
+                      ReferenceVideoPath = v.ReferenceVideo != null ? v.ReferenceVideo.VideoPath : null,
+                      IsRecreate = v.IsRecreate,
+                      AppliedPrompt = v.AppliedPrompt,
+                      Status = v.Status.ToString(),
+                      ErrorMessage = v.ErrorMessage,
+                      OutputVideoPath = v.OutputVideoPath,
+                      CreatedAt = v.CreatedAt,
+                      FruitAssetId = v.FruitAssetId,
+                      ReferenceVideoId = v.ReferenceVideoId,
+                      AiGeneratedCaption = v.AiGeneratedCaption,
+                      IsPublished = v.PublishedVideo != null,
+                      Platform = v.PublishedVideo != null ? (int)v.PublishedVideo.Platform : 0,
+                      PostUrl = v.PublishedVideo != null ? v.PublishedVideo.PostUrl : ""
+                  })
+                  .ToListAsync();
+                return Ok(history);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Listeleme sırasında hata oluştu: {ex.Message}");
+            }
+        }
+
+        [HttpDelete("{id}")]
+        [HttpDelete("generations/{id}")]
+        public async Task<IActionResult> DeleteGeneration(int id)
+        {
+            try
+            {
+                var generation = await _context.VideoGenerations.FindAsync(id);
+
+                if (generation == null)
+                {
+                    return NotFound(new { Message = "Silinmek istenen kayıt bulunamadı." });
+                }
+
+                if (!string.IsNullOrEmpty(generation.OutputVideoPath) && System.IO.File.Exists(generation.OutputVideoPath))
+                {
+                    System.IO.File.Delete(generation.OutputVideoPath);
+                }
+
+                _context.VideoGenerations.Remove(generation);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { Message = "İşlem başarıyla silindi." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Silme işlemi sırasında hata oluştu: {ex.Message}");
+            }
+        }
     }
 }

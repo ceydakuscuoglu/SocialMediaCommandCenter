@@ -51,7 +51,7 @@ export interface KlingCreditData {
 }
 
 export const fetchJobs = async (): Promise<VideoJob[]> => {
-  return apiFetch<VideoJob[]>("/KlingAIBot/generations");
+  return apiFetch<VideoJob[]>("/Generation");
 };
 
 export const prepareJob = async (formData: FormData): Promise<PrepareResponse> => {
@@ -78,7 +78,7 @@ export const updateJob = async ({ id, data }: { id: number; data: UpdateHistoric
 };
 
 export const deleteJob = async (jobId: number): Promise<void> => {
-  return apiFetch(`/KlingAIBot/generations/${jobId}`, {
+  return apiFetch(`/Generation/${jobId}`, {
     method: "DELETE",
   });
 };
