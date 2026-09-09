@@ -1,6 +1,6 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
-namespace ShakyFruits.API.DTOs
+namespace ShakyFruits.Core.DTOs
 {
     public class AudienceDemographicsDto
     {
@@ -16,3 +16,4 @@ namespace ShakyFruits.API.DTOs
         public string Percentage { get; set; } = string.Empty;
     }
 }
+

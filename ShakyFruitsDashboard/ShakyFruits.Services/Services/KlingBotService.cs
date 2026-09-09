@@ -8,7 +8,7 @@ using ShakyFruits.Core.Entities;
 using ShakyFruits.Core.Enums;
 using ShakyFruits.Core.Helpers;
 using ShakyFruits.Core.Interfaces;
-using ShakyFruits.Core.Models;
+using ShakyFruits.Core.DTOs;
 using ShakyFruits.Data;
 
 namespace ShakyFruits.Services
@@ -115,7 +115,7 @@ namespace ShakyFruits.Services
             }
 
             var sessionId = Guid.NewGuid().ToString();
-            var sessionData = new TempPrepareSession
+            var sessionData = new TempPrepareSessionDto
             {
                 ExistingFruitAssetId = existingFruitAssetId,
                 ExistingReferenceVideoId = existingReferenceVideoId,
@@ -145,7 +145,7 @@ namespace ShakyFruits.Services
 
         public async Task<object?> ConfirmAsync(string sessionId)
         {
-            if (!_cache.TryGetValue(sessionId, out TempPrepareSession? sessionData) || sessionData == null)
+            if (!_cache.TryGetValue(sessionId, out TempPrepareSessionDto? sessionData) || sessionData == null)
             {
                 return null;
             }

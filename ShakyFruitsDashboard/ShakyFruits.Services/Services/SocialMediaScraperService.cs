@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Playwright;
 using ShakyFruits.Core.Entities;
 using ShakyFruits.Core.Enums;
-using ShakyFruits.Core.Models;
+using ShakyFruits.Core.DTOs;
 using System.Text.Json;
 
 namespace ShakyFruits.Services

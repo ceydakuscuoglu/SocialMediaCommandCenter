@@ -1,6 +1,6 @@
 ﻿using ShakyFruits.Core.Entities;
 
-namespace ShakyFruits.API.DTOs
+namespace ShakyFruits.Core.DTOs
 {
     public class CreateReferenceVideoRequestDto
     {
@@ -10,3 +10,4 @@ namespace ShakyFruits.API.DTOs
         public string? KlingSourceUrlOrId { get; set; }
     }
 }
+

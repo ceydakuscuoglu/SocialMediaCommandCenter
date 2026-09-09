@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Http;
-using ShakyFruits.Core.Models;
 
-namespace ShakyFruits.API.DTOs
+
+namespace ShakyFruits.Core.DTOs
 {
     public class BotPrepareRequestDto
     {
@@ -11,7 +11,7 @@ namespace ShakyFruits.API.DTOs
         public string TargetModel { get; set; } = "VIDEO 2.6";
         public string TargetResolution { get; set; } = "720p";
 
-        // === VAR OLANLARI SEÇMEK İÇİN ID'LER ===
+        // === VAR OLANLARI SEÃ‡MEK Ä°Ã‡Ä°N ID'LER ===
         public int? ExistingFruitAssetId { get; set; }
         public int? ExistingReferenceVideoId { get; set; }
 
@@ -21,9 +21,5 @@ namespace ShakyFruits.API.DTOs
 
         public string? FruitTitle { get; set; }
         public string? DanceStyle { get; set; }
-    }
-
-    public class TempPrepareSession : ShakyFruits.Core.Models.TempPrepareSession
-    {
     }
 }

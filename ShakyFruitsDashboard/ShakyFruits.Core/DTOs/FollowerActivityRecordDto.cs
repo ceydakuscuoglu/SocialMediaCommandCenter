@@ -1,4 +1,4 @@
-namespace ShakyFruits.API.DTOs
+﻿namespace ShakyFruits.Core.DTOs
 {
     public class FollowerActivityRecordDto 
     {
@@ -7,3 +7,4 @@ namespace ShakyFruits.API.DTOs
         public int ActiveFollowers { get; set; }
     }
 }
+

@@ -2,8 +2,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using ShakyFruits.Core.Entities;
+using ShakyFruits.Core.DTOs;
 using ShakyFruits.Core.Enums;
-using ShakyFruits.Core.Models;
 
 namespace ShakyFruits.Core.Interfaces
 {

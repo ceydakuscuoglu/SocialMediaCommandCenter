@@ -1,7 +1,7 @@
 ﻿using System;
 using ShakyFruits.Core.Enums;
 
-namespace ShakyFruits.API.DTOs
+namespace ShakyFruits.Core.DTOs
 {
     public class AddHistoricalVideoRequestDto
     {

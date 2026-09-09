@@ -1,4 +1,4 @@
-﻿namespace ShakyFruits.API.DTOs
+﻿namespace ShakyFruits.Core.DTOs
 {
     public class VideoGenerationListDto
     {

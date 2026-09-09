@@ -1,10 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using System;
 
-namespace ShakyFruits.Core.Models
+namespace ShakyFruits.Core.DTOs
 {
-    public class VideoGenerationJob
+    public class VideoGenerationJobDto
     {
         public Guid JobId { get; set; } = Guid.NewGuid();
         public bool IsRecreate { get; set; }

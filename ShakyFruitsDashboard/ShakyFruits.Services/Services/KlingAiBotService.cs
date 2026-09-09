@@ -1,5 +1,5 @@
-﻿using Microsoft.Playwright;
-using ShakyFruits.Core.Models;
+using Microsoft.Playwright;
+using ShakyFruits.Core.DTOs;
 
 namespace ShakyFruits.Services
 {
@@ -155,7 +155,7 @@ namespace ShakyFruits.Services
             _page = null;
         }
 
-        public async Task<KlingCreditsModel> GetCreditsAsync()
+        public async Task<KlingCreditsDto> GetCreditsAsync()
         {
             // Kalıcı oturum yolun (Kendi projene göre ayarlayabilirsin)
             string userDataDir = Path.Combine(Directory.GetCurrentDirectory(), "BrowserData");
@@ -216,7 +216,7 @@ namespace ShakyFruits.Services
                 string bonusText = await summaryContainer.Locator(".item")
                     .Filter(new LocatorFilterOptions { HasText = "Bonus Credits" }).Locator("p").InnerTextAsync();
 
-                return new KlingCreditsModel
+                return new KlingCreditsDto
                 {
                     RemainingCredits = ParseCredit(remainingText),
                     MembershipCredits = ParseCredit(membershipText),

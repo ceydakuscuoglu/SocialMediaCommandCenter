@@ -1,6 +1,6 @@
-namespace ShakyFruits.Core.Models
+namespace ShakyFruits.Core.DTOs
 {
-    public class TempPrepareSession
+    public class TempPrepareSessionDto
     {
         public int? ExistingFruitAssetId { get; set; }
         public int? ExistingReferenceVideoId { get; set; }

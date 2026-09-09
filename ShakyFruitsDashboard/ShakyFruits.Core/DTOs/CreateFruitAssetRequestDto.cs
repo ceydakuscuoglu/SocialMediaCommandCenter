@@ -1,4 +1,4 @@
-﻿namespace ShakyFruits.API.DTOs
+﻿namespace ShakyFruits.Core.DTOs
 {
     public class CreateFruitAssetRequestDto
     {
@@ -8,3 +8,4 @@
         public List<int> FruitTypeIds { get; set; } // İçindeki meyvelerin ID'leri
     }
 }
+

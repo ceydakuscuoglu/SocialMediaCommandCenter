@@ -1,6 +1,6 @@
 ﻿using ShakyFruits.Core.Enums;
 
-namespace ShakyFruits.API.DTOs
+namespace ShakyFruits.Core.DTOs
 {
     public class UpdateHistoricalVideoRequestDto
     {
@@ -21,3 +21,4 @@ namespace ShakyFruits.API.DTOs
         public DateTime? PublishedAt { get; set; }
     }
 }
+

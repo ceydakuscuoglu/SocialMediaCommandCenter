@@ -1,4 +1,4 @@
-﻿namespace ShakyFruits.API.DTOs
+﻿namespace ShakyFruits.Core.DTOs
 {
     public class PublishVideoRequest
     {
@@ -6,3 +6,4 @@
         public string PostUrl { get; set; }
     }
 }
+

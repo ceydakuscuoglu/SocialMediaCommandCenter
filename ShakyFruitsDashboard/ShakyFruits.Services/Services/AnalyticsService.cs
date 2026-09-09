@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 using ShakyFruits.Core.Entities;
 using ShakyFruits.Core.Enums;
 using ShakyFruits.Core.Interfaces;
-using ShakyFruits.Core.Models;
+using ShakyFruits.Core.DTOs;
 using ShakyFruits.Data;
 
 namespace ShakyFruits.Services

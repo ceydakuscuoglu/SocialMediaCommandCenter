@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 
-namespace ShakyFruits.Core.Models
+namespace ShakyFruits.Core.DTOs
 {
-    // Artık sadece hashtag listesini tutan sade bir kapsayıcı
+    // Sadece hashtag listesini tutan sade bir kapsayıcı
     public class TikTokTrendDashboardDto
     {
         public List<TrendItemDto> TrendingHashtags { get; set; } = new();

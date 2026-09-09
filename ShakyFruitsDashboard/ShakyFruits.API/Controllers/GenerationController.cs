@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using ShakyFruits.API.DTOs;
+using ShakyFruits.Core.DTOs;
 using ShakyFruits.Core.Enums;
 using ShakyFruits.Core.Interfaces;
 using System;

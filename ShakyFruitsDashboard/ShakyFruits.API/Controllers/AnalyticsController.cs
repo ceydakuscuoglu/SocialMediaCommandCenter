@@ -3,7 +3,7 @@ using System.IO;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using ShakyFruits.API.DTOs;
+using ShakyFruits.Core.DTOs;
 using ShakyFruits.Core.Enums;
 using ShakyFruits.Core.Interfaces;
 

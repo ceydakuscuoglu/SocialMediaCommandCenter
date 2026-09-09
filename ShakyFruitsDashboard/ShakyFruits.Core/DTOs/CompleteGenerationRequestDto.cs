@@ -1,4 +1,4 @@
-﻿namespace ShakyFruits.API.DTOs
+﻿namespace ShakyFruits.Core.DTOs
 {
     public class CompleteGenerationRequestDto
     {
@@ -7,3 +7,4 @@
         public string? AiGeneratedCaption { get; set; }
     }
 }
+
