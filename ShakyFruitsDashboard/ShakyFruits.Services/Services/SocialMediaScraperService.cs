@@ -425,73 +425,90 @@ namespace ShakyFruits.Services
             }
         }
 
-        public async Task<object> GetTikTokDailyTrendsAsync()
+        public async Task<TikTokTrendDashboardDto> GetTikTokDailyTrendsAsync()
         {
             string userDataDir = Path.Combine(Directory.GetCurrentDirectory(), "BrowserData");
 
             using var playwright = await Playwright.CreateAsync();
             await using var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
             {
-                Headless = false, // İlk denemede pop-up vs. gelirse görmek için false yapıyoruz
+                Headless = true, // Artık giriş yaptığın için burayı true (gizli) yapabilirsin!
                 Channel = "chrome",
+                ViewportSize = new ViewportSize { Width = 1920, Height = 1080 },
+                UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
                 Args = new[] { "--disable-blink-features=AutomationControlled" }
             });
 
             var page = await browserContext.NewPageAsync();
+            var dashboardData = new TikTokTrendDashboardDto();
 
             try
             {
-                _logger.LogInformation("TikTok Trend Hashtag'leri çekiliyor...");
-                await page.GotoAsync("https://ads.tiktok.com/business/creativecenter/inspiration/popular/hashtag/pc/en",
-                    new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle, Timeout = 60000 });
-                await Task.Delay(5000); // Tabloların render olması için
+                _logger.LogInformation("TikTok Trend sayfasına gidiliyor...");
+                await page.GotoAsync("https://ads.tiktok.com/creative/creativeCenter/trends/hashtag?region=US&period=7",
+                    new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded, Timeout = 60000 });
 
-                // Hashtag'leri JS ile topla
-                var hashtagsJson = await page.EvaluateAsync<string>(@"() => {
-            let items = Array.from(document.querySelectorAll('.CardPc_container__2RQk9')).slice(0, 10);
-            return JSON.stringify(items.map((el, i) => {
-                let nameEl = el.querySelector('.CardPc_titleText__1qEwS');
-                return { 
-                    Name: nameEl ? nameEl.innerText.trim() : '', 
-                    Rank: (i + 1).toString() 
-                };
-            }).filter(x => x.Name !== ''));
-        }");
-
-                _logger.LogInformation("TikTok Trend Müzikleri çekiliyor...");
-                await page.GotoAsync("https://ads.tiktok.com/business/creativecenter/inspiration/popular/music/pc/en",
-                    new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle, Timeout = 60000 });
+                // Tablonun ilk yüklenmesi için biraz bekle
                 await Task.Delay(5000);
 
-                // Şarkıları JS ile topla
-                var songsJson = await page.EvaluateAsync<string>(@"() => {
-            let items = Array.from(document.querySelectorAll('.SoundCard_container__2U3uB')).slice(0, 10);
-            return JSON.stringify(items.map((el, i) => {
-                let titleEl = el.querySelector('.SoundCard_soundTitle__2jR3o');
-                let authorEl = el.querySelector('.SoundCard_author__1aMv-');
-                return { 
-                    Title: titleEl ? titleEl.innerText.trim() : '', 
-                    Author: authorEl ? authorEl.innerText.trim() : '',
-                    Rank: (i + 1).toString() 
-                };
-            }).filter(x => x.Title !== ''));
+                _logger.LogInformation("TikTok Trend Hashtag'leri toplanıyor (Sanal Liste Hilesi)...");
+
+                // BÜYÜK HİLE: Toplama ve kaydırma işlemini tarayıcının içinde (JS) anlık yapıyoruz.
+                // Böylece yukarıda kalıp silinen elementleri kaçırmıyoruz!
+                var hashtagsJson = await page.EvaluateAsync<string>(@"() => {
+            return new Promise((resolve) => {
+                let collectedData = new Map(); // Tekrarları önlemek için Map kullanıyoruz
+                let scrollAttempts = 0;
+                const maxAttempts = 15; // Sonsuz döngüyü engellemek için
+
+                let interval = setInterval(() => {
+                    // O an ekranda olanları yakala ve sepete (Map) at
+                    let rows = document.querySelectorAll('div[data-index]');
+                    rows.forEach(row => {
+                        let rankEl = row.querySelector('.w-\\[30px\\]');
+                        let rank = rankEl ? rankEl.innerText.trim() : '';
+
+                        let titleEl = row.querySelector('.truncate.text-\\[18px\\]');
+                        let name = titleEl ? titleEl.innerText.trim() : '';
+
+                        let stats = Array.from(row.querySelectorAll('.text-text-medium-cc'));
+                        let postCount = stats.length > 0 ? stats[0].innerText.trim() + ' Posts' : '';
+                        let viewCount = stats.length > 1 ? stats[1].innerText.trim() + ' Views' : '';
+
+                        if (name && rank) {
+                            collectedData.set(rank, {
+                                Name: name,
+                                Rank: rank,
+                                Stats: postCount + (postCount && viewCount ? ' / ' : '') + viewCount
+                            });
+                        }
+                    });
+
+                    // Sayfayı biraz aşağı kaydır
+                    window.scrollBy(0, 800);
+                    scrollAttempts++;
+
+                    // 50 tane topladıysak veya çok fazla kaydırdıysak bitir
+                    if (collectedData.size >= 50 || scrollAttempts >= maxAttempts) {
+                        clearInterval(interval);
+                        
+                        // Sepetteki verileri diziye çevir, sıraya diz ve ilk 50'sini al
+                        let resultList = Array.from(collectedData.values())
+                            .sort((a, b) => parseInt(a.Rank) - parseInt(b.Rank))
+                            .slice(0, 50);
+                            
+                        resolve(JSON.stringify(resultList));
+                    }
+                }, 800); // Her kaydırma arası 800ms bekle
+            });
         }");
 
-                // System.Text.Json ile C# nesnelerine dönüştür
                 var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
-                var hashtags = System.Text.Json.JsonSerializer.Deserialize<object>(hashtagsJson, options);
-                var songs = System.Text.Json.JsonSerializer.Deserialize<object>(songsJson, options);
+                // Çekilen json dizisini DTO listemize dönüştürüp atıyoruz
+                dashboardData.TrendingHashtags = System.Text.Json.JsonSerializer.Deserialize<List<TrendItemDto>>(hashtagsJson, options) ?? new();
 
-                // Not: Video trendleri sayfasının URL'si bölgeye göre değişebilir, şimdilik boş bırakıyoruz, 
-                // ana mantık oturduktan sonra buraya eklenebilir.
-
-                return new
-                {
-                    trendingHashtags = hashtags,
-                    trendingSongs = songs,
-                    trendingVideos = new List<object>()
-                };
+                return dashboardData;
             }
             catch (Exception ex)
             {
@@ -500,7 +517,8 @@ namespace ShakyFruits.Services
             }
             finally
             {
-                await page.CloseAsync();
+                if (page != null) await page.CloseAsync();
+                if (browserContext != null) await browserContext.CloseAsync();
             }
         }
 
