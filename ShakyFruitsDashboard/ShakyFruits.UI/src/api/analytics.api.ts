@@ -147,7 +147,22 @@ export enum SocialPlatform {
   Instagram = 2
 }
 
-// --- GET İSTEKLERİ ---
+// --- TIKTOK LIVE TRENDS ---
+export interface TrendingHashtag {
+  name: string;
+  rank: string;
+  stats: string;
+}
+
+export interface LiveTrendsResponse {
+  source: string;
+  message: string;
+  data: {
+    trendingHashtags: TrendingHashtag[];
+  };
+}
+
+// --- GET & POST İSTEKLERİ ---
 
 export const fetchInternalStats = async (): Promise<InternalStats> => {
   return apiFetch<InternalStats>("/Analytics/internal-stats");
@@ -236,4 +251,8 @@ export const generateGoldenHours = async (file: File) => {
     method: "POST",
     body: formData,
   });
+};
+
+export const fetchLiveTrends = async (): Promise<LiveTrendsResponse> => {
+  return apiFetch<LiveTrendsResponse>("/Analytics/tiktok/live-trends");
 };

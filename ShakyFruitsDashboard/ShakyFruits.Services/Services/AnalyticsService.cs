@@ -755,7 +755,7 @@ namespace ShakyFruits.Services
 
         public async Task<object> GenerateGoldenHoursHeatmapAsync(Stream csvStream)
         {
-            var records = new List<FollowerActivityRecord>();
+            var records = new List<FollowerActivityRecordDto>();
 
             using (var stream = new StreamReader(csvStream))
             {
@@ -770,7 +770,7 @@ namespace ShakyFruits.Services
                     var columns = line.Split(',');
                     if (columns.Length >= 3)
                     {
-                        records.Add(new FollowerActivityRecord
+                        records.Add(new FollowerActivityRecordDto
                         {
                             Date = columns[0].Trim(),
                             Hour = columns[1].Trim(),
@@ -822,27 +822,61 @@ namespace ShakyFruits.Services
             return await _scraperService.GetLiveDemographicsAsync();
         }
 
-        public async Task<object> GetDailyTrendsAsync(TrendPlatform? platform)
+        // Parametreyi tamamen kaldırdık!
+        public async Task<object> GetTikTokDailyTrendsAsync()
         {
-            if (platform == TrendPlatform.TikTok || !platform.HasValue)
+            var cacheFilePath = Path.Combine(Directory.GetCurrentDirectory(), "tiktok_trends_cache.json");
+
+            // Günü kontrol etmek için UtcNow.Date kullanıyoruz
+            var today = DateTime.UtcNow.Date;
+
+            // ==========================================
+            // 1. JSON CACHE (ÖNBELLEK) KONTROLÜ
+            // ==========================================
+            if (System.IO.File.Exists(cacheFilePath))
             {
-                return await _scraperService.GetTikTokDailyTrendsAsync();
+                var cacheContent = await System.IO.File.ReadAllTextAsync(cacheFilePath);
+                var cachedData = System.Text.Json.JsonSerializer.Deserialize<TikTokTrendCacheModel>(cacheContent);
+
+                // Veri varsa ve BUGÜN çekildiyse, Playwright'ı tetiklemeden anında dön
+                if (cachedData != null && cachedData.LastScrapedAt.Date == today)
+                {
+                    return new
+                    {
+                        source = "JSON Cache",
+                        message = "TikTok trendleri önbellekten hızlıca getirildi.",
+                        data = cachedData.Data
+                    };
+                }
             }
 
-            var trends = await _context.DailyTrends
-                .Where(t => t.Platform == platform.Value)
-                .OrderByDescending(t => t.ViewCount)
-                .Take(20)
-                .ToListAsync();
+            // ==========================================
+            // 2. CACHE YOKSA VEYA ESKİYSE CANLI KAZIMA YAP
+            // ==========================================
+            // Not: Bu satırda _scraperService içindeki asıl Playwright metodunu çağırıyoruz.
+            var liveTrends = await _scraperService.GetTikTokDailyTrendsAsync();
 
-            return trends;
-        }
+            // ==========================================
+            // 3. YENİ KAZINAN VERİYİ JSON DOSYASINA YAZ
+            // ==========================================
+            var newCache = new TikTokTrendCacheModel
+            {
+                LastScrapedAt = DateTime.UtcNow,
+                Data = liveTrends
+            };
 
-        private class FollowerActivityRecord
-        {
-            public string Date { get; set; } = string.Empty;
-            public string Hour { get; set; } = string.Empty;
-            public int ActiveFollowers { get; set; }
+            var options = new System.Text.Json.JsonSerializerOptions { WriteIndented = true };
+            await System.IO.File.WriteAllTextAsync(cacheFilePath, System.Text.Json.JsonSerializer.Serialize(newCache, options));
+
+            // ==========================================
+            // 4. CANLI VERİYİ DÖN
+            // ==========================================
+            return new
+            {
+                source = "Live Scrape",
+                message = "TikTok trendleri canlı kazındı ve önbelleğe kaydedildi.",
+                data = liveTrends
+            };
         }
     }
 }

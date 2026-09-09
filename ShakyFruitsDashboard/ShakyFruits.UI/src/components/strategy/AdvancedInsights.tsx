@@ -1,10 +1,11 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trophy, Zap, TrendingUp, Users, Waves } from "lucide-react";
+import { Trophy, Zap, TrendingUp, Users, Waves, Flame } from "lucide-react";
 import { LeaderboardsTab } from "./LeaderboardsTab";
 import { CastSynergyTab } from "./CastSynergyTab";
 import { AlgoTriggersTab } from "./AlgoTriggersTab";
 import { GoldenHoursTab } from "./GoldenHoursTab";
+import { LiveTrendsTable } from "./LiveTrendsTable";
 
 export function AdvancedInsights() {
   return (
@@ -21,35 +22,53 @@ export function AdvancedInsights() {
 
       <CardContent className="pt-6">
         <Tabs defaultValue="leaderboards" className="w-full">
-          <TabsList className="grid w-full grid-cols-1 md:grid-cols-4 bg-muted/50 p-1 rounded-lg h-auto md:h-12">
+          <TabsList className="grid w-full grid-cols-1 md:grid-cols-5 bg-muted/50 p-1 rounded-lg h-auto md:h-12">
+
+            {/* Altın / Amber Rengi - Liderlik */}
             <TabsTrigger value="leaderboards" className="flex items-center justify-center gap-2 h-10">
-              <Trophy className="w-4 h-4" /> <span>Top Charts</span>
+              <Trophy className="w-4 h-4 text-amber-500" /> <span>Top Charts</span>
             </TabsTrigger>
+
+            {/* Mor / Violet - Ekip Sinerjisi */}
             <TabsTrigger value="synergy" className="flex items-center justify-center gap-2 h-10">
-              <Users className="w-4 h-4" /> <span>Cast Synergy</span>
+              <Users className="w-4 h-4 text-violet-500" /> <span>Cast Synergy</span>
             </TabsTrigger>
+
+            {/* Zümrüt Yeşili - Büyüme/Algoritma */}
             <TabsTrigger value="algorithm" className="flex items-center justify-center gap-2 h-10">
-              <TrendingUp className="w-4 h-4" /> <span>Algo Triggers</span>
+              <TrendingUp className="w-4 h-4 text-emerald-500" /> <span>Algo Triggers</span>
             </TabsTrigger>
+
+            {/* Okyanus Mavisi - Dalga Sörfü */}
             <TabsTrigger value="surf" className="flex items-center justify-center gap-2 h-10">
-              <Waves className="w-4 h-4" /> <span>Surf Strategy</span>
+              <Waves className="w-4 h-4 text-cyan-500" /> <span>Surf Strategy</span>
             </TabsTrigger>
+
+            {/* Ateş Kırmızısı - Canlı Trendler */}
+            <TabsTrigger value="trends" className="flex items-center justify-center gap-2 h-10">
+              <Flame className="w-4 h-4 text-rose-500" /> <span>Live Trends</span>
+            </TabsTrigger>
+
           </TabsList>
 
-          <TabsContent value="leaderboards">
+          <TabsContent value="leaderboards" className="mt-6">
             <LeaderboardsTab />
           </TabsContent>
 
-          <TabsContent value="synergy">
+          <TabsContent value="synergy" className="mt-6">
             <CastSynergyTab />
           </TabsContent>
 
-          <TabsContent value="algorithm">
+          <TabsContent value="algorithm" className="mt-6">
             <AlgoTriggersTab />
           </TabsContent>
 
-          <TabsContent value="surf">
+          <TabsContent value="surf" className="mt-6">
             <GoldenHoursTab />
+          </TabsContent>
+
+          <TabsContent value="trends" className="mt-6">
+            <LiveTrendsTable />
           </TabsContent>
         </Tabs>
       </CardContent>

@@ -14,4 +14,10 @@ namespace ShakyFruits.Core.DTOs
         public string Rank { get; set; } = string.Empty;
         public string Stats { get; set; } = string.Empty; // "89.1K Posts / 189.4M Views"
     }
+
+    public class TikTokTrendCacheModel
+    {
+        public DateTime LastScrapedAt { get; set; }
+        public TikTokTrendDashboardDto Data { get; set; }
+    }
 }

@@ -29,6 +29,6 @@ namespace ShakyFruits.Core.Interfaces
         Task<object> GetLifecycleInsightsAsync();
         Task<object> GenerateGoldenHoursHeatmapAsync(Stream csvStream);
         Task<object?> GetInstagramLiveDemographicsAsync();
-        Task<object> GetDailyTrendsAsync(TrendPlatform? platform);
+        Task<object> GetTikTokDailyTrendsAsync();
     }
 }

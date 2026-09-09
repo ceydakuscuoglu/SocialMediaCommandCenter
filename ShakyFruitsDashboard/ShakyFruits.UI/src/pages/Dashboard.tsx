@@ -6,6 +6,7 @@ import { InstagramProfileCard } from "@/components/dashboard/InstagramProfileCar
 import { TikTokAccountOverview } from "@/components/dashboard/TikTokAccountOverview";
 import { InstagramAccountOverview } from "@/components/dashboard/InstagramAccountOverview";
 import { AccountGrowthChart } from "@/components/dashboard/AccountGrowthChart";
+import { TrendPulseCard } from "@/components/dashboard/TrendPulseCard";
 import { LayoutDashboard } from "lucide-react";
 
 export function Dashboard() {
@@ -30,12 +31,20 @@ export function Dashboard() {
 
       <div>
         <h2 className="text-xl font-semibold tracking-tight mb-4 text-foreground/90">Executive Summary</h2>
-        
+
         {/* ÜST SATIR: Bakiye ve Profil Kartları (3 Eşit Kolon) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <KlingCreditCard data={creditData} isLoading={isLoading} />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          {/* 1. KOLON: Bakiye ve Trend Kartları (Kendi içinde 2 satıra bölündü) */}
+          {/* 1. KOLON: Bakiye ve Trend Kartları (Hacimleri kadar yer kaplar) */}
+          <div className="flex flex-col gap-6">
+            <KlingCreditCard data={creditData} isLoading={isLoading} />
+            <TrendPulseCard />
+          </div>
+          {/* 2. KOLON: TikTok Profil */}
           <TikTokProfileCard />
+          {/* 3. KOLON: Instagram Profil */}
           <InstagramProfileCard />
+
         </div>
 
         {/* ORTA SATIR: 7 Günlük Platform Metrikleri (2 Geniş Kolon) */}

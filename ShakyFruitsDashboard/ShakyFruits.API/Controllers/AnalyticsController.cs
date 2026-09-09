@@ -326,17 +326,18 @@ namespace ShakyFruits.API.Controllers
             }
         }
 
-        [HttpGet("tiktok/daily-trends")]
-        public async Task<IActionResult> GetDailyTrends([FromQuery] TrendPlatform? platform)
+        [HttpGet("tiktok/live-trends")]
+        public async Task<IActionResult> GetLiveTrends()
         {
             try
             {
-                var trends = await _analyticsService.GetDailyTrendsAsync(platform);
-                return Ok(trends);
+                // Artık platform parametresi göndermene gerek yok
+                var result = await _analyticsService.GetTikTokDailyTrendsAsync();
+                return Ok(result);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Message = "Trend verileri çekilemedi.", Error = ex.Message });
+                return StatusCode(500, new { message = "Trendler alınırken hata oluştu.", error = ex.Message });
             }
         }
     }
