@@ -21,6 +21,7 @@ namespace ShakyFruits.Core.Interfaces
         Task<object> GetAllVideosLatestStatsAsync();
         Task<object> GetVideoSmartStatsAsync(int videoId);
         Task<object> ForceRefreshVideoStatsAsync(int videoId);
+        Task<object> ForceRefreshAllVideosStatsAsync();
         Task<object> GetLeaderboardsAsync();
         Task<object> GetSoloVsGroupAnalyticsAsync();
         Task<object> GetEngagementMetricsAsync();

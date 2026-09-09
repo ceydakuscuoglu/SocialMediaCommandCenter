@@ -502,6 +502,65 @@ namespace ShakyFruits.Services
             };
         }
 
+        public async Task<object> ForceRefreshAllVideosStatsAsync()
+        {
+            var activeVideos = await _context.PublishedVideos
+                .Where(v => v.Platform == SocialPlatform.TikTok && !string.IsNullOrWhiteSpace(v.PostUrl))
+                .ToListAsync();
+
+            if (activeVideos.Count == 0)
+            {
+                return new
+                {
+                    success = true,
+                    total = 0,
+                    successful = 0,
+                    failed = 0,
+                    message = "Taranacak aktif TikTok videosu bulunamadı."
+                };
+            }
+
+            int successCount = 0;
+            int failCount = 0;
+            var results = new List<object>();
+
+            foreach (var video in activeVideos)
+            {
+                try
+                {
+                    _logger.LogInformation($"[ForceRefreshAllVideosStatsAsync] Kazınıyor: Video #{video.Id} ({video.PostUrl})");
+                    var scrapedStats = await _scraperService.ScrapeTikTokStatsAsync(video.PostUrl);
+                    scrapedStats.PublishedVideoId = video.Id;
+                    scrapedStats.RecordedAt = DateTime.UtcNow;
+
+                    _context.VideoAnalytics.Add(scrapedStats);
+                    successCount++;
+                    results.Add(new { videoId = video.Id, success = true, views = scrapedStats.Views, likes = scrapedStats.Likes });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"[ForceRefreshAllVideosStatsAsync] Video #{video.Id} kazınırken hata oluştu: {ex.Message}");
+                    failCount++;
+                    results.Add(new { videoId = video.Id, success = false, error = ex.Message });
+                }
+            }
+
+            if (successCount > 0)
+            {
+                await _context.SaveChangesAsync();
+            }
+
+            return new
+            {
+                success = true,
+                total = activeVideos.Count,
+                successful = successCount,
+                failed = failCount,
+                message = $"{successCount}/{activeVideos.Count} video başarıyla güncellendi.",
+                results
+            };
+        }
+
         public async Task<object> GetLeaderboardsAsync()
         {
             var videosWithStats = await _context.PublishedVideos

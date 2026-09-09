@@ -179,6 +179,12 @@ export const forceRefreshVideoStats = async (videoId: number): Promise<any> => {
   });
 };
 
+export const forceRefreshAllVideosStats = async (): Promise<any> => {
+  return apiFetch("/Analytics/videos/force-refresh-all", {
+    method: "POST",
+  });
+};
+
 export const fetchAccountHistory = async (platform?: SocialPlatform | any) => {
   let endpoint = "/Analytics/account-history";
   if (typeof platform === "number") {

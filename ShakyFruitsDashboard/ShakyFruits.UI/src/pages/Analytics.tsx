@@ -1,9 +1,15 @@
-
-import { useQuery } from "@tanstack/react-query";
-import { fetchInternalStats, fetchAllVideosLatestStats, fetchPublishedVideos } from "@/api/analytics.api";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  fetchInternalStats,
+  fetchAllVideosLatestStats,
+  fetchPublishedVideos,
+  forceRefreshAllVideosStats
+} from "@/api/analytics.api";
 import { VideoPerformanceChart } from "@/components/analytics/VideoPerformanceChart";
 import { TrackVideoModal } from "@/components/analytics/TrackVideoModal";
-import { PublishedVideosTable } from "@/components/analytics/PublishedVideosTable"; // YENİ IMPORT
+import { PublishedVideosTable } from "@/components/analytics/PublishedVideosTable";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -16,19 +22,41 @@ import {
   Music,
   Video,
   Loader2,
-  BarChart3
+  BarChart3,
+  RefreshCw,
+  Zap,
+  CheckCircle2
 } from "lucide-react";
 
 export function Analytics() {
+  const queryClient = useQueryClient();
+  const [liveScrapeMessage, setLiveScrapeMessage] = useState<string | null>(null);
+
   const { data: stats, isLoading, isError } = useQuery({
     queryKey: ["internal-stats"],
     queryFn: fetchInternalStats,
   });
 
-  // YENİ AKILLI TABLO SORGUSU
-  const { data: latestVideos } = useQuery({
+  const {
+    data: latestVideos,
+    refetch: refetchLatestVideos,
+    isFetching: isFetchingLatestVideos
+  } = useQuery({
     queryKey: ["published-videos-latest"],
     queryFn: fetchAllVideosLatestStats
+  });
+
+  const liveScrapeAllMutation = useMutation({
+    mutationFn: forceRefreshAllVideosStats,
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["published-videos-latest"] });
+      queryClient.invalidateQueries({ queryKey: ["published-videos"] });
+      setLiveScrapeMessage(res?.message || "All videos successfully updated.");
+      setTimeout(() => setLiveScrapeMessage(null), 6000);
+    },
+    onError: (err: any) => {
+      alert(err.message || "An error occurred while live scraping all videos.");
+    }
   });
 
   const { data: publishedVideos } = useQuery({
@@ -37,15 +65,11 @@ export function Analytics() {
   });
 
   const topPerformingVideo = publishedVideos?.reduce((prev, current) => {
-    // Her videonun geçmişindeki en son (en güncel) izlenme sayısını al
     const prevViews = prev.analyticsHistory?.[prev.analyticsHistory.length - 1]?.views || 0;
     const currViews = current.analyticsHistory?.[current.analyticsHistory.length - 1]?.views || 0;
-
-    // Hangisi daha büyükse onu seç
     return currViews > prevViews ? current : prev;
   }, publishedVideos?.[0]);
 
-  // En popüler meyve ve dansı hesaplamak için güvenli kontroller
   const topFruit = stats?.fruitStats?.sort((a, b) => b.usageCount - a.usageCount)[0];
   const topDance = stats?.danceStats?.sort((a, b) => b.usageCount - a.usageCount)[0];
 
@@ -61,26 +85,21 @@ export function Analytics() {
         </p>
       </div>
 
-      {/* TIKTOK ACCOUNT OVERVIEW BURADAN SİLİNDİ */}
-
-      {/* Yükleniyor / Hata Durumları ve Stat Kartları aynen kalıyor */}
-      {/* ... */}
       {isLoading && (
         <div className="flex items-center justify-center h-32 text-muted-foreground">
           <Loader2 className="w-6 h-6 animate-spin mr-2" />
-          <span>Analitik verileri toplanıyor...</span>
+          <span>Gathering analytics data...</span>
         </div>
       )}
+
       {isError && (
         <div className="p-4 bg-destructive/10 text-destructive border border-destructive/20 rounded-md">
-          Veriler yüklenirken bir sorun oluştu. C# worker'ın çalıştığından emin olun.
+          An error occurred while loading data. Please ensure the backend worker is running.
         </div>
       )}
 
-      {/* Özet Kartları (Stat Cards) */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-
           <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -148,13 +167,10 @@ export function Analytics() {
               </p>
             </CardContent>
           </Card>
-
         </div>
       )}
 
-      {/* Alt Kısım: Grafik ve İşlem Alanı */}
       <div className="grid grid-cols-1 gap-6 mt-8">
-        {/* Sol Taraf (3 Kolon Genişliğinde): Performans Grafiği */}
         <div className="lg:col-span-3 min-h-[384px]">
           <VideoPerformanceChart
             historyData={topPerformingVideo?.analyticsHistory || []}
@@ -162,7 +178,7 @@ export function Analytics() {
           />
         </div>
       </div>
-      {/* Adım D: Yayınlanan Videolar Tablosu */}
+
       <div className="mt-8 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -170,13 +186,57 @@ export function Analytics() {
             <p className="text-sm text-muted-foreground">
               All published TikTok videos currently monitored by the ShakyFruits background engine.
             </p>
+            {liveScrapeMessage && (
+              <p className="text-xs text-emerald-500 font-medium flex items-center gap-1.5 mt-1.5 animate-in fade-in">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                {liveScrapeMessage}
+              </p>
+            )}
           </div>
 
-          {/* URL EKLEME BUTONU TABLO BAŞLIĞINDA */}
-          <TrackVideoModal />
+          <div className="flex items-center gap-3 flex-wrap">
+            <Button
+              variant="outline"
+              onClick={() => refetchLatestVideos()}
+              disabled={isFetchingLatestVideos || liveScrapeAllMutation.isPending}
+              // Tema renginin (Primary) yumuşak ve şık bir varyasyonunu uyguladık:
+              className="h-10 px-5 rounded-full gap-2 border-primary/30 bg-primary/5 hover:bg-primary/15 text-primary font-medium shadow-sm transition-all"
+              title="Instantly fetches the latest cached data from the database"
+            >
+              <RefreshCw className={`w-4 h-4 ${isFetchingLatestVideos ? "animate-spin" : ""}`} />
+              <span>Refresh</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (window.confirm("Are you sure you want to trigger a live scrape for all videos? This process may take a while depending on the queue size.")) {
+                  liveScrapeAllMutation.mutate();
+                }
+              }}
+              disabled={liveScrapeAllMutation.isPending || isFetchingLatestVideos}
+              // Amber rengini daha premium bir tona çektik ve kenarları yuvarladık:
+              className="h-10 px-5 rounded-full gap-2 border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/15 text-amber-600 dark:text-amber-500 font-medium shadow-sm transition-all"
+              title="Sequentially connects to TikTok Studio to scrape live data for all videos"
+            >
+              {liveScrapeAllMutation.isPending ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Scraping...</span>
+                </>
+              ) : (
+                <>
+                  <Zap className="w-4 h-4" />
+                  <span>Live Scrape All</span>
+                </>
+              )}
+            </Button>
+
+            {/* Bu modal içindeki buton zaten mor ve dolgun tasarıma sahip */}
+            <TrackVideoModal />
+          </div>
         </div>
 
-        {/* Tabloya yeni hızlı veriyi gönderiyoruz */}
         <PublishedVideosTable videos={latestVideos} />
       </div>
 

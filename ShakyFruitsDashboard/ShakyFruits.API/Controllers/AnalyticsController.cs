@@ -205,6 +205,20 @@ namespace ShakyFruits.API.Controllers
             }
         }
 
+        [HttpPost("videos/force-refresh-all")]
+        public async Task<IActionResult> ForceRefreshAllVideosStats()
+        {
+            try
+            {
+                var result = await _analyticsService.ForceRefreshAllVideosStatsAsync();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "Tüm videoların zorla yenilenmesi sırasında hata oluştu.", Error = ex.Message });
+            }
+        }
+
         [HttpGet("leaderboards")]
         public async Task<IActionResult> GetLeaderboards()
         {
