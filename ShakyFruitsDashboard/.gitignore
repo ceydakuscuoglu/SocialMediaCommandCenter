@@ -365,4 +365,5 @@ FodyWeavers.xsd
 #Playwright persistent browser profile
 /ShakyFruits.API/BrowserData/
 
-ShakyFruitsDashboard/ShakyFruits.API/credits_cache.json
+/ShakyFruits.API/tiktok_trends_cache.json
+/ShakyFruits.API/credits_cache.json
