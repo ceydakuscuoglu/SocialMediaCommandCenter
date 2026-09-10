@@ -9,6 +9,7 @@ export enum GenerationStatus {
 
 export interface VideoJob {
   id: number;
+  title?: string;
   fruitImagePath: string;
   referenceVideoPath: string;
   isRecreate: boolean;
@@ -20,6 +21,7 @@ export interface VideoJob {
 }
 
 export interface UpdateHistoricalVideoRequest {
+  title?: string;
   fruitAssetId: number;
   referenceVideoId?: number;
   isRecreate: boolean;

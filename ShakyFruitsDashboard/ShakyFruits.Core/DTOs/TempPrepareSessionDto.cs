@@ -8,6 +8,7 @@ namespace ShakyFruits.Core.DTOs
         public string? TempVideoPath { get; set; }
         public string FinalImagePathToUse { get; set; } = string.Empty;
         public string? FinalVideoPathToUse { get; set; }
+        public string? Title { get; set; }
         public string? FruitTitle { get; set; }
         public string? DanceStyle { get; set; }
         public bool IsMultipleFruits { get; set; }

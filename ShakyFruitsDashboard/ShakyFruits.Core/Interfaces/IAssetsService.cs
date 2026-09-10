@@ -20,6 +20,6 @@ namespace ShakyFruits.Core.Interfaces
         Task<object> GetFruitTypesAsync();
         Task<object?> UpdateFruitTypeAsync(int id, string name);
 
-        Task<object?> CompleteVideoGenerationAsync(int videoGenerationId, string outputVideoPath, string? aiGeneratedCaption);
+        Task<object?> CompleteVideoGenerationAsync(int videoGenerationId, string outputVideoPath, string? aiGeneratedCaption, string? title = null);
     }
 }

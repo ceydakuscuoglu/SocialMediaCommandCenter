@@ -49,6 +49,7 @@ namespace ShakyFruits.Services
         }
 
         public async Task<object> AddHistoricalVideoAsync(
+            string? title,
             int fruitAssetId,
             int? referenceVideoId,
             bool isRecreate,
@@ -66,6 +67,7 @@ namespace ShakyFruits.Services
 
             var newGeneration = new VideoGeneration
             {
+                Title = !string.IsNullOrWhiteSpace(title) ? title : fruitAsset.Title,
                 FruitAssetId = fruitAssetId,
                 ReferenceVideoId = referenceVideoId,
                 IsRecreate = isRecreate,
@@ -102,6 +104,7 @@ namespace ShakyFruits.Services
             {
                 message = "Geçmiş video sisteme başarıyla eklendi.",
                 videoGenerationId = newGeneration.Id,
+                title = newGeneration.Title,
                 publishedVideoId = publishedVideoId,
                 outputVideoPath = newGeneration.OutputVideoPath,
                 appliedPrompt = newGeneration.AppliedPrompt,
@@ -111,6 +114,7 @@ namespace ShakyFruits.Services
 
         public async Task<object?> UpdateHistoricalVideoAsync(
             int id,
+            string? title,
             int fruitAssetId,
             int? referenceVideoId,
             bool isRecreate,
@@ -127,6 +131,11 @@ namespace ShakyFruits.Services
                 .FirstOrDefaultAsync(v => v.Id == id);
 
             if (generation == null) return null;
+
+            if (!string.IsNullOrWhiteSpace(title))
+            {
+                generation.Title = title;
+            }
 
             if (generation.FruitAssetId != fruitAssetId)
             {
@@ -184,6 +193,7 @@ namespace ShakyFruits.Services
             {
                 message = "Geçmiş video kaydı başarıyla güncellendi.",
                 videoGenerationId = generation.Id,
+                title = generation.Title,
                 outputVideoPath = generation.OutputVideoPath,
                 appliedPrompt = generation.AppliedPrompt,
                 isPublished = isPublished,
@@ -202,6 +212,7 @@ namespace ShakyFruits.Services
                 .Select(v => new
                 {
                     id = v.Id,
+                    title = v.Title,
                     fruitImagePath = v.FruitAsset.ImagePath,
                     referenceVideoPath = v.ReferenceVideo != null ? v.ReferenceVideo.VideoPath : null,
                     isRecreate = v.IsRecreate,

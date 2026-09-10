@@ -1,10 +1,12 @@
-﻿using System;
+using System;
 using ShakyFruits.Core.Enums;
 
 namespace ShakyFruits.Core.DTOs
 {
     public class AddHistoricalVideoRequestDto
     {
+        public string Title { get; set; } = string.Empty;
+
         // 1. Temel Varlık İlişkileri
         public int FruitAssetId { get; set; } // Hangi meyve? (Zorunlu)
         public int? ReferenceVideoId { get; set; } // Referans video ID'si (Opsiyonel)

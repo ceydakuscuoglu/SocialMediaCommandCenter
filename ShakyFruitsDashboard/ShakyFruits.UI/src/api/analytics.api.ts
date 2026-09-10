@@ -21,6 +21,7 @@ export interface VideoAnalyticsSnapshot {
 export interface PublishedVideo {
   id: number;
   videoGenerationId: number;
+  title?: string;
   platform: number; // 1: TikTok
   postUrl: string;
   publishedAt: string;
@@ -75,6 +76,7 @@ export interface PublishedVideoLatest {
   id?: number;
   videoId: number;
   videoGenerationId?: number;
+  title?: string;
   platform: string | number;
   postUrl: string;
   publishedAt: string;

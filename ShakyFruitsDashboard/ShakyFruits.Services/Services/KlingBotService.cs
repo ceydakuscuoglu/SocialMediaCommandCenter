@@ -48,7 +48,8 @@ namespace ShakyFruits.Services
             bool isMultipleFruits,
             string? targetUrl,
             string? fruitTitle,
-            string? danceStyle)
+            string? danceStyle,
+            string? title = null)
         {
             string finalImagePath = string.Empty;
             string? tempImagePath = null;
@@ -115,6 +116,10 @@ namespace ShakyFruits.Services
             }
 
             var sessionId = Guid.NewGuid().ToString();
+            var resolvedTitle = !string.IsNullOrWhiteSpace(title)
+                ? title
+                : (!string.IsNullOrWhiteSpace(fruitTitle) ? $"{fruitTitle} - {danceStyle ?? "Video"}" : (fruitImageFileName ?? "Kayıtlı Meyve Video"));
+
             var sessionData = new TempPrepareSessionDto
             {
                 ExistingFruitAssetId = existingFruitAssetId,
@@ -123,6 +128,7 @@ namespace ShakyFruits.Services
                 TempVideoPath = tempVideoPath,
                 FinalImagePathToUse = finalImagePath,
                 FinalVideoPathToUse = finalVideoPath,
+                Title = resolvedTitle,
                 FruitTitle = !string.IsNullOrWhiteSpace(fruitTitle) ? fruitTitle : (fruitImageFileName ?? "Kayıtlı Meyve"),
                 DanceStyle = !string.IsNullOrWhiteSpace(danceStyle) ? danceStyle : "Kayıtlı Stil",
                 IsMultipleFruits = isMultipleFruits,
@@ -189,6 +195,9 @@ namespace ShakyFruits.Services
 
             var newGeneration = new VideoGeneration
             {
+                Title = !string.IsNullOrWhiteSpace(sessionData.Title)
+                    ? sessionData.Title
+                    : (!string.IsNullOrWhiteSpace(sessionData.FruitTitle) ? $"{sessionData.FruitTitle} Video" : "Kling Video"),
                 FruitAssetId = finalFruitAssetId,
                 ReferenceVideoId = finalReferenceVideoId,
                 IsRecreate = sessionData.IsRecreate,

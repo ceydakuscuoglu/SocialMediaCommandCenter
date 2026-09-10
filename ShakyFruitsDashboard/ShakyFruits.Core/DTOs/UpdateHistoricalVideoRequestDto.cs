@@ -1,10 +1,11 @@
-﻿using ShakyFruits.Core.Enums;
+using ShakyFruits.Core.Enums;
 
 namespace ShakyFruits.Core.DTOs
 {
     public class UpdateHistoricalVideoRequestDto
     {
         public int FruitAssetId { get; set; }
+        public string Title { get; set; } = string.Empty;
         public int? ReferenceVideoId { get; set; }
 
         public bool IsRecreate { get; set; }

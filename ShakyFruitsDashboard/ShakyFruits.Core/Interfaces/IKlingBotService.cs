@@ -18,7 +18,8 @@ namespace ShakyFruits.Core.Interfaces
             bool isMultipleFruits,
             string? targetUrl,
             string? fruitTitle,
-            string? danceStyle);
+            string? danceStyle,
+            string? title = null);
 
         Task<object?> ConfirmAsync(string sessionId);
 

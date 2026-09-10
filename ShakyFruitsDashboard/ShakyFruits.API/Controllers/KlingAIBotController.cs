@@ -38,7 +38,8 @@ namespace ShakyFruits.API.Controllers
                     request.IsMultipleFruits,
                     request.TargetUrl,
                     request.FruitTitle,
-                    request.DanceStyle);
+                    request.DanceStyle,
+                    request.Title);
 
                 return Ok(result);
             }

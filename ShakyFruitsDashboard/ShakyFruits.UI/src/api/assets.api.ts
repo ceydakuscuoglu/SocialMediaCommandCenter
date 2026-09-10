@@ -46,6 +46,7 @@ export interface ReferenceVideo {
 }
 
 export interface AddHistoricalVideoRequest {
+  title?: string;
   fruitAssetId: number;
   referenceVideoId?: number | null;
   outputVideoPath: string;

@@ -21,6 +21,7 @@ export function UpdateJobModal({ isOpen, onClose, job }: UpdateJobModalProps) {
     
     // Varsayılan platform değerini 1 (TikTok) yaptık
     const [formData, setFormData] = useState<UpdateHistoricalVideoRequest>({
+        title: "",
         fruitAssetId: 0,
         referenceVideoId: undefined,
         isRecreate: false,
@@ -36,6 +37,7 @@ export function UpdateJobModal({ isOpen, onClose, job }: UpdateJobModalProps) {
             console.log("✏️ Modal İçin Gelen Job Verisi:", job);
 
             setFormData({
+                title: job.title ?? job.Title ?? "",
                 fruitAssetId: job.fruitAssetId ?? job.FruitAssetId ?? 0,
                 referenceVideoId: job.referenceVideoId ?? job.ReferenceVideoId,
                 isRecreate: job.isRecreate ?? job.IsRecreate ?? false,
@@ -63,6 +65,7 @@ export function UpdateJobModal({ isOpen, onClose, job }: UpdateJobModalProps) {
 
         // KESİN ÇÖZÜM: C#'ın 400 hatası atmaması için boş string'leri undefined'a çeviriyoruz
         const payload = {
+            title: formData.title || undefined,
             fruitAssetId: formData.fruitAssetId,
             referenceVideoId: formData.referenceVideoId,
             isRecreate: formData.isRecreate,
@@ -90,6 +93,14 @@ export function UpdateJobModal({ isOpen, onClose, job }: UpdateJobModalProps) {
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+                    <div className="space-y-2">
+                        <Label>Video Title</Label>
+                        <Input
+                            value={formData.title}
+                            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                        />
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label>Fruit Asset ID</Label>

@@ -46,6 +46,7 @@ interface PublishModalProps {
   onClose: () => void;
   videoGenerationId: number | null;
   videoPath: string;
+  videoTitle?: string;
   defaultCaption?: string;
 }
 
@@ -54,6 +55,7 @@ export function PublishModal({
   onClose,
   videoGenerationId,
   videoPath,
+  videoTitle,
   defaultCaption,
 }: PublishModalProps) {
   const queryClient = useQueryClient();
@@ -219,6 +221,11 @@ export function PublishModal({
           </DialogTitle>
 
           <DialogDescription>
+            {videoTitle ? (
+              <span className="block font-medium text-foreground text-sm mb-1 truncate">
+                📹 {videoTitle}
+              </span>
+            ) : null}
             Select a platform and generate an
             AI-powered viral caption before
             publishing.

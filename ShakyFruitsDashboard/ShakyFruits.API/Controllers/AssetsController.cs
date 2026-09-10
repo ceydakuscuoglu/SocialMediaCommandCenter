@@ -213,7 +213,8 @@ namespace ShakyFruits.API.Controllers
                 var result = await _assetsService.CompleteVideoGenerationAsync(
                     request.VideoGenerationId,
                     request.OutputVideoPath,
-                    request.AiGeneratedCaption);
+                    request.AiGeneratedCaption,
+                    request.Title);
 
                 if (result == null) return NotFound();
                 return Ok(result);
@@ -230,6 +231,7 @@ namespace ShakyFruits.API.Controllers
             try
             {
                 var result = await _generationService.AddHistoricalVideoAsync(
+                    request.Title,
                     request.FruitAssetId,
                     request.ReferenceVideoId,
                     request.IsRecreate,
@@ -260,6 +262,7 @@ namespace ShakyFruits.API.Controllers
             {
                 var result = await _generationService.UpdateHistoricalVideoAsync(
                     id,
+                    request.Title,
                     request.FruitAssetId,
                     request.ReferenceVideoId,
                     request.IsRecreate,

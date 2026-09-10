@@ -57,6 +57,7 @@ export function NewJobDialog() {
   const [selectedVideoId, setSelectedVideoId] = useState<string>("");
   const [referenceVideo, setReferenceVideo] = useState<File | null>(null);
 
+  const [videoTitle, setVideoTitle] = useState("");
   const [fruitTitle, setFruitTitle] = useState("");
   const [danceStyle, setDanceStyle] = useState("");
 
@@ -97,6 +98,7 @@ export function NewJobDialog() {
     setSelectedVideoId("");
     setImageMode("existing");
     setVideoMode("existing");
+    setVideoTitle("");
     setFruitTitle(""); 
     setDanceStyle(""); 
     setTargetModel("VIDEO 2.6"); 
@@ -113,6 +115,7 @@ export function NewJobDialog() {
     formData.append("TargetModel", targetModel);
     formData.append("TargetResolution", targetResolution);
 
+    if (videoTitle) formData.append("Title", videoTitle);
     if (fruitTitle) formData.append("FruitTitle", fruitTitle);
     if (danceStyle) formData.append("DanceStyle", danceStyle);
 
@@ -177,6 +180,12 @@ export function NewJobDialog() {
 
             <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto px-1">
               
+              {/* Video Title */}
+              <div className="grid gap-2">
+                <Label>Video Title</Label>
+                <Input placeholder="e.g. Dancing Strawberry Fiesta" value={videoTitle} onChange={(e) => setVideoTitle(e.target.value)} />
+              </div>
+
               {/* Job Type */}
               <div className="grid gap-2">
                 <Label>Job Type</Label>
@@ -322,6 +331,12 @@ export function NewJobDialog() {
 
             <div className="bg-muted/30 p-4 rounded-lg border border-border flex flex-col gap-3">
               <p className="text-sm text-muted-foreground">{costData?.message}</p>
+              {videoTitle && (
+                <div className="flex justify-between items-center border-b border-border/50 pb-2">
+                  <span className="text-sm font-medium">Video Title:</span>
+                  <span className="text-sm font-semibold text-foreground truncate max-w-[250px]">{videoTitle}</span>
+                </div>
+              )}
               <div className="flex justify-between items-center border-b border-border/50 pb-2">
                 <span className="font-medium">Calculated Cost:</span>
                 <span className="text-xl font-bold text-primary">{costData?.calculatedCredits} Credits</span>

@@ -4,6 +4,7 @@ namespace ShakyFruits.Core.DTOs
 {
     public class VideoGenerationJobDto
     {
+        public string Title { get; set; }
         public Guid JobId { get; set; } = Guid.NewGuid();
         public bool IsRecreate { get; set; }
         public string? TargetUrl { get; set; }

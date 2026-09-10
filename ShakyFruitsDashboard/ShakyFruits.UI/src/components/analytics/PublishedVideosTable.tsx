@@ -43,7 +43,7 @@ export function PublishedVideosTable({ videos = [] }: PublishedVideosTableProps)
         <TableHeader className="bg-muted/30">
           <TableRow>
             <TableHead className="w-[80px]">Gen ID</TableHead>
-            <TableHead>Platform URL</TableHead>
+            <TableHead>Video / Link</TableHead>
             <TableHead className="text-right">Views</TableHead>
             <TableHead className="text-right">Likes</TableHead>
             <TableHead className="text-right">Favorites</TableHead>
@@ -63,15 +63,22 @@ export function PublishedVideosTable({ videos = [] }: PublishedVideosTableProps)
                   #{video.videoId}
                 </TableCell>
                 <TableCell>
-                  <a
-                    href={video.postUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-indigo-400 hover:text-indigo-300 transition-colors max-w-[200px] truncate"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" />
-                    <span className="truncate">{video.postUrl}</span>
-                  </a>
+                  <div className="flex flex-col gap-0.5">
+                    {video.title && (
+                      <span className="font-semibold text-foreground text-sm truncate max-w-[240px] xl:max-w-[320px]" title={video.title}>
+                        {video.title}
+                      </span>
+                    )}
+                    <a
+                      href={video.postUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 transition-colors max-w-[240px] xl:max-w-[320px] truncate"
+                    >
+                      <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                      <span className="truncate">{video.postUrl}</span>
+                    </a>
+                  </div>
                 </TableCell>
 
                 <TableCell className="text-right font-semibold text-sky-500">

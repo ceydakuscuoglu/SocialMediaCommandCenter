@@ -19,6 +19,7 @@ namespace ShakyFruits.Core.DTOs
         public IFormFile? FruitImage { get; set; }
         public IFormFile? ReferenceVideo { get; set; }
 
+        public string? Title { get; set; }
         public string? FruitTitle { get; set; }
         public string? DanceStyle { get; set; }
     }

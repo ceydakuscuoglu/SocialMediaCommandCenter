@@ -174,7 +174,11 @@ export function Analytics() {
         <div className="lg:col-span-3 min-h-[384px]">
           <VideoPerformanceChart
             historyData={topPerformingVideo?.analyticsHistory || []}
-            title={`TikTok Growth Trend (Top Video: #${topPerformingVideo?.videoGenerationId || ''})`}
+            title={
+              topPerformingVideo
+                ? `TikTok Growth Trend (Top Video: ${topPerformingVideo.title || '#' + topPerformingVideo.videoGenerationId})`
+                : "TikTok Growth Trend"
+            }
           />
         </div>
       </div>

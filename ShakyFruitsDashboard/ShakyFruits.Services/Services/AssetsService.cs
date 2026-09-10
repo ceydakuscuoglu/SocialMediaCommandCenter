@@ -254,10 +254,15 @@ namespace ShakyFruits.Services
             };
         }
 
-        public async Task<object?> CompleteVideoGenerationAsync(int videoGenerationId, string outputVideoPath, string? aiGeneratedCaption)
+        public async Task<object?> CompleteVideoGenerationAsync(int videoGenerationId, string outputVideoPath, string? aiGeneratedCaption, string? title = null)
         {
             var generation = await _context.VideoGenerations.FindAsync(videoGenerationId);
             if (generation == null) return null;
+
+            if (!string.IsNullOrWhiteSpace(title))
+            {
+                generation.Title = title;
+            }
 
             generation.OutputVideoPath = outputVideoPath;
             generation.AiGeneratedCaption = aiGeneratedCaption;
@@ -268,6 +273,7 @@ namespace ShakyFruits.Services
             return new
             {
                 id = generation.Id,
+                title = generation.Title,
                 status = generation.Status.ToString(),
                 outputVideoPath = generation.OutputVideoPath,
                 aiGeneratedCaption = generation.AiGeneratedCaption

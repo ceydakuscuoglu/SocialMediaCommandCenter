@@ -76,6 +76,7 @@ namespace ShakyFruits.Services
                 {
                     id = p.Id,
                     videoGenerationId = p.VideoGenerationId,
+                    title = p.VideoGeneration != null ? p.VideoGeneration.Title : "",
                     platform = (int)p.Platform,
                     postUrl = p.PostUrl,
                     publishedAt = p.PublishedAt,
@@ -412,6 +413,7 @@ namespace ShakyFruits.Services
                     postUrl = v.PostUrl,
                     publishedAt = v.PublishedAt,
                     fruitTitle = v.VideoGeneration?.FruitAsset?.Title ?? "Bilinmiyor",
+                    title = !string.IsNullOrWhiteSpace(v.VideoGeneration?.Title) ? v.VideoGeneration.Title : (v.VideoGeneration?.FruitAsset?.Title ?? "Bilinmiyor"),
                     danceStyle = v.VideoGeneration?.ReferenceVideo?.DanceStyle ?? "Bilinmiyor",
                     latestStats = latestRecord != null ? new
                     {
@@ -659,7 +661,7 @@ namespace ShakyFruits.Services
                 {
                     videoId = v.Id,
                     postUrl = v.PostUrl,
-                    title = v.VideoGeneration?.FruitAsset?.Title ?? "Bilinmiyor",
+                    title = !string.IsNullOrWhiteSpace(v.VideoGeneration?.Title) ? v.VideoGeneration.Title : (v.VideoGeneration?.FruitAsset?.Title ?? "Bilinmiyor"),
                     viralFactor,
                     commentRatio,
                     likeRatio,
@@ -737,7 +739,7 @@ namespace ShakyFruits.Services
                         lateBloomers.Add(new
                         {
                             videoId = video.Id,
-                            title = video.VideoGeneration?.FruitAsset?.Title ?? "Bilinmiyor",
+                            title = !string.IsNullOrWhiteSpace(video.VideoGeneration?.Title) ? video.VideoGeneration.Title : (video.VideoGeneration?.FruitAsset?.Title ?? "Bilinmiyor"),
                             postUrl = video.PostUrl,
                             firstRecordedViews = firstRecord.Views,
                             latestViews = latestRecord.Views,

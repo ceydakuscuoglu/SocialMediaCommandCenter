@@ -1,9 +1,11 @@
-﻿using ShakyFruits.Core.Enums;
+using ShakyFruits.Core.Enums;
 
 namespace ShakyFruits.Core.Entities
 {
     public class VideoGeneration : BaseEntity
     {
+        public string Title { get; set; } = string.Empty;
+
         // 1. İlişkiler (Dosya yollarını bu tablolardan çekeceğiz)
         public int FruitAssetId { get; set; }
         public virtual FruitAsset FruitAsset { get; set; }

@@ -48,6 +48,7 @@ export function Pipeline() {
         }}
         videoGenerationId={selectedPublishJob?.id}
         videoPath={selectedPublishJob?.outputVideoPath}
+        videoTitle={selectedPublishJob?.title}
         defaultCaption={selectedPublishJob?.aiGeneratedCaption}
       />
 

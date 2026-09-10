@@ -60,21 +60,13 @@ export function JobsTable({ onPublish }: JobsTableProps = {}) {
   const handleOpenFolder = async (path: string | null) => {
     if (!path) return;
     try {
-      // 1. Tırnak işaretlerini temizle
       const cleanPath = path.replace(/["']/g, "");
-
-      // 2. Videonun bulunduğu klasörün yolunu ayır
       const folderPath = cleanPath.substring(0, Math.max(cleanPath.lastIndexOf('\\'), cleanPath.lastIndexOf('/'))) || cleanPath;
-
-      // 3. Windows'un en sevdiği format olan ters slash (\) ile yolu sabitle
       const safePath = folderPath.replace(/\//g, '\\');
 
       console.log("Shell Command'e Giden Yol:", safePath);
-
-      // 4. Tauri Shell Command ile explorer.exe'yi doğrudan çalıştır
       const command = Command.create('run-explorer', [safePath]);
       await command.spawn();
-
     } catch (err) {
       console.error("Shell Command Hatası:", err);
       alert(`Tauri Hatası:\n${err}`);
@@ -83,12 +75,8 @@ export function JobsTable({ onPublish }: JobsTableProps = {}) {
 
   const handleDelete = async (jobId: number) => {
     try {
-      // 1. Tüm işi merkezi API dosyamıza devrettik
       await deleteJob(jobId);
-
-      // 2. Silme başarılıysa tabloyu yenile
       window.location.reload();
-
     } catch (err) {
       console.error("Silme Hatası:", err);
       alert(`Hata:\n${err instanceof Error ? err.message : err}`);
@@ -128,39 +116,55 @@ export function JobsTable({ onPublish }: JobsTableProps = {}) {
         <TableHeader className="bg-muted/10">
           <TableRow className="hover:bg-transparent whitespace-nowrap">
             <TableHead className="w-[5%] text-center">ID</TableHead>
-            <TableHead className="w-[25%]">Source Assets</TableHead> {/* Dosyalar solda kalır */}
-            <TableHead className="w-[15%] text-center">Applied Prompt</TableHead>
+            {/* Title için alan genişletildi (%15'ten %25'e) */}
+            <TableHead className="w-[25%]">Title</TableHead>
+            <TableHead className="w-[15%]">Assets</TableHead>
+            <TableHead className="w-[10%] text-center">Prompt</TableHead>
             <TableHead className="w-[10%] text-center">Job Type</TableHead>
-            <TableHead className="w-[15%] text-center">Status</TableHead>
-            <TableHead className="w-[15%] text-center">Created At</TableHead>
-            <TableHead className="w-[15%] pr-6 text-right">Actions</TableHead> {/* Butonlar sağa yapışır */}
+            <TableHead className="w-[10%] text-center">Status</TableHead>
+            {/* Created At genişliği dengelendi */}
+            <TableHead className="w-[10%] text-center">Created At</TableHead>
+            <TableHead className="w-[15%] pr-6 text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {jobs.map((job) => (
             <TableRow key={job.id} className="group transition-colors hover:bg-muted/50">
-              {/* 1. ID Ortalandı */}
+              {/* 1. ID */}
               <TableCell className="font-medium text-center">#{job.id}</TableCell>
 
-              {/* 2. Source Assets Sola Dayalı (Aynen Kalıyor) */}
+              {/* 2. SADECE TITLE - truncate kısıtlamaları kaldırıldı, tam görünüm eklendi */}
+              <TableCell className="py-3">
+                {job.title ? (
+                  <div className="font-semibold text-foreground text-sm tracking-tight whitespace-normal break-words min-w-[180px]">
+                    {job.title}
+                  </div>
+                ) : (
+                  <div className="text-muted-foreground/60 italic text-sm">
+                    Untitled
+                  </div>
+                )}
+              </TableCell>
+
+              {/* 3. SADECE ASSETS */}
               <TableCell className="py-3">
                 <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center gap-2 text-sm w-full">
-                    <FileImage className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <span className="truncate max-w-[180px] lg:max-w-[280px] xl:max-w-[350px]" title={job.fruitImagePath}>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground w-full">
+                    <FileImage className="w-3.5 h-3.5 shrink-0 text-emerald-500/70" />
+                    <span className="truncate max-w-[150px] lg:max-w-[200px]" title={job.fruitImagePath}>
                       {getFileName(job.fruitImagePath)}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 text-sm w-full">
-                    <FileVideo className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <span className="truncate max-w-[180px] lg:max-w-[280px] xl:max-w-[350px]" title={job.referenceVideoPath}>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground w-full">
+                    <FileVideo className="w-3.5 h-3.5 shrink-0 text-sky-500/70" />
+                    <span className="truncate max-w-[150px] lg:max-w-[200px]" title={job.referenceVideoPath}>
                       {getFileName(job.referenceVideoPath)}
                     </span>
                   </div>
                 </div>
               </TableCell>
 
-              {/* 3. Prompt Butonu Ortalandı */}
+              {/* 4. Prompt Butonu */}
               <TableCell className="text-center">
                 <Dialog>
                   <DialogTrigger asChild>
@@ -183,7 +187,7 @@ export function JobsTable({ onPublish }: JobsTableProps = {}) {
                 </Dialog>
               </TableCell>
 
-              {/* 4. Job Type Rozeti Ortalandı */}
+              {/* 5. Job Type Rozeti */}
               <TableCell className="text-center">
                 {job.isRecreate ? (
                   <Badge variant="outline" className="text-amber-500 border-amber-500/20 bg-amber-500/5">
@@ -196,14 +200,14 @@ export function JobsTable({ onPublish }: JobsTableProps = {}) {
                 )}
               </TableCell>
 
-              {/* 5. Status Rozeti Ortalandı (Flex justify-center ile) */}
+              {/* 6. Status Rozeti */}
               <TableCell>
                 <div className="flex justify-center">
                   <JobStatusBadge status={job.status} errorMessage={job.errorMessage} />
                 </div>
               </TableCell>
 
-              {/* 6. Tarih Ortalandı (justify-center yapıldı) */}
+              {/* 7. Tarih */}
               <TableCell className="text-muted-foreground whitespace-nowrap text-sm">
                 <div className="flex items-center justify-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 opacity-70" />
@@ -211,11 +215,9 @@ export function JobsTable({ onPublish }: JobsTableProps = {}) {
                 </div>
               </TableCell>
 
-              {/* 7. Actions Sağa Dayalı (Aynen Kalıyor) */}
+              {/* 8. Actions */}
               <TableCell className="pr-6 text-right">
                 <div className="flex items-center justify-end gap-2">
-
-                  {/* YAYINLA (PUBLISH) BUTONU */}
                   {(String(job.status).toLowerCase() === "completed" || String(job.status) === "2") && onPublish && (
                     <Button
                       variant="default"
@@ -228,7 +230,6 @@ export function JobsTable({ onPublish }: JobsTableProps = {}) {
                     </Button>
                   )}
 
-                  {/* KLASÖR AÇMA BUTONU */}
                   {(String(job.status).toLowerCase() === "completed" || String(job.status) === "2") && job.outputVideoPath && (
                     <Button
                       variant="secondary"
@@ -240,6 +241,7 @@ export function JobsTable({ onPublish }: JobsTableProps = {}) {
                       <FolderOpen className="w-4 h-4" />
                     </Button>
                   )}
+
                   <Button
                     variant="ghost"
                     size="icon"
@@ -252,7 +254,7 @@ export function JobsTable({ onPublish }: JobsTableProps = {}) {
                   >
                     <Pencil className="w-4 h-4" />
                   </Button>
-                  {/* 3. SİLME BUTONU VE ONAY PENCERESİ */}
+
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
@@ -268,7 +270,7 @@ export function JobsTable({ onPublish }: JobsTableProps = {}) {
                       <AlertDialogHeader>
                         <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This action cannot be undone. This will permanently delete Job #{job.id} from the database and remove associated assets.
+                          This action cannot be undone. This will permanently delete Job #{job.id}{job.title ? ` ("${job.title}")` : ""} from the database and remove associated assets.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -282,10 +284,8 @@ export function JobsTable({ onPublish }: JobsTableProps = {}) {
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
-
                 </div>
               </TableCell>
-
             </TableRow>
           ))}
         </TableBody>

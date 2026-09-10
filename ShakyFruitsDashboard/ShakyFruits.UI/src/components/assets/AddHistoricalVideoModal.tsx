@@ -16,6 +16,7 @@ export function AddHistoricalVideoModal() {
   const { data: fruits = [] } = useQuery({ queryKey: ["fruit-assets"], queryFn: fetchFruitAssets });
   const { data: references = [] } = useQuery({ queryKey: ["reference-videos"], queryFn: fetchReferenceVideos });
 
+  const [title, setTitle] = useState("");
   const [fruitId, setFruitId] = useState("");
   const [refId, setRefId] = useState("none");
   const [videoPath, setVideoPath] = useState("");
@@ -41,6 +42,7 @@ export function AddHistoricalVideoModal() {
   });
 
   const resetForm = () => {
+    setTitle("");
     setFruitId(""); setRefId("none"); setVideoPath(""); 
     setIsRecreate(false); setTargetUrl(""); // Reset eklendi
     setIsPublished(false); setPostUrl(""); setPublishedDate("");
@@ -53,6 +55,7 @@ export function AddHistoricalVideoModal() {
     if (isPublished && !postUrl) return alert("Yayınlanmış videolar için TikTok linki zorunludur.");
 
     historicalMutation.mutate({
+      title: title || undefined,
       fruitAssetId: parseInt(fruitId),
       referenceVideoId: refId !== "none" ? parseInt(refId) : null,
       outputVideoPath: videoPath,
@@ -83,6 +86,14 @@ export function AddHistoricalVideoModal() {
 
         <form onSubmit={handleSubmit} className="space-y-5 mt-4">
           
+          <div className="space-y-2">
+            <Label>Video Title</Label>
+            <Input 
+              placeholder="e.g. Viral Strawberry Salsa Dance" 
+              value={title} onChange={e => setTitle(e.target.value)} 
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Source Fruit Character <span className="text-destructive">*</span></Label>

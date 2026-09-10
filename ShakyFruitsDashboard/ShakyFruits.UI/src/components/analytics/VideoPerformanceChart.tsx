@@ -36,7 +36,7 @@ export function VideoPerformanceChart({
       return {
         ...snap,
         // Ekranda çok yer kaplamaması için "Gün Ay, Saat:Dakika" formatı
-        displayDate: date.toLocaleDateString("tu-TR", {
+        displayDate: date.toLocaleDateString("tr-TR", {
           month: "short",
           day: "numeric",
           hour: "2-digit",

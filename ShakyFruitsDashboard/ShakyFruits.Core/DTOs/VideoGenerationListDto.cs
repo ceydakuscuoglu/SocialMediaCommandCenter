@@ -2,6 +2,7 @@
 {
     public class VideoGenerationListDto
     {
+        public string Title { get; set; }
         public int Id { get; set; }
 
         // Ön yüzde küçük bir önizleme (thumbnail) göstermek için resim ve video yolları

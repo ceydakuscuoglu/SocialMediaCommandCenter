@@ -220,7 +220,7 @@ namespace ShakyFruits.Services
             using var playwright = await Playwright.CreateAsync();
             await using var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
             {
-                Headless = false, // Hataları izlemek için false, her şey çalışınca true yaparsın
+                Headless = true, // Hataları izlemek için false, her şey çalışınca true yaparsın
                 Channel = "chrome",
                 Args = new[] { "--disable-blink-features=AutomationControlled" }
             });
