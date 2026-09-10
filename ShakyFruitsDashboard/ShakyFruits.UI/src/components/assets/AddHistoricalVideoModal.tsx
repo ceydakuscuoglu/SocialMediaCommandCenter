@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { addHistoricalVideo, fetchFruitAssets, fetchReferenceVideos } from "@/api/assets.api";
+import { addHistoricalVideo, fetchFruitAssets, fetchReferenceVideos, fetchAssetPaths } from "@/api/assets.api";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ export function AddHistoricalVideoModal() {
 
   const { data: fruits = [] } = useQuery({ queryKey: ["fruit-assets"], queryFn: fetchFruitAssets });
   const { data: references = [] } = useQuery({ queryKey: ["reference-videos"], queryFn: fetchReferenceVideos });
+  const { data: assetPaths } = useQuery({ queryKey: ["asset-paths"], queryFn: fetchAssetPaths });
 
   const [title, setTitle] = useState("");
   const [fruitId, setFruitId] = useState("");
@@ -117,11 +118,21 @@ export function AddHistoricalVideoModal() {
           </div>
 
           <div className="space-y-2">
-            <Label>Local Video Path <span className="text-destructive">*</span></Label>
+            <div className="flex items-center justify-between">
+              <Label>Output Video File Name <span className="text-destructive">*</span></Label>
+              {assetPaths?.outputs && (
+                <span className="text-[10px] text-muted-foreground truncate max-w-[200px]" title={assetPaths.outputs}>
+                  📁 {assetPaths.outputs}
+                </span>
+              )}
+            </div>
             <Input 
-              placeholder="D:\ShakyFruits\Outputs\viral_dans_1.mp4" 
+              placeholder="e.g. bombomgirl_tropicals.mp4" 
               value={videoPath} onChange={e => setVideoPath(e.target.value)} 
             />
+            <p className="text-[11px] text-muted-foreground">
+              Sadece dosya adını (örn. <code className="text-primary font-mono">bombomgirl_tropicals.mp4</code>) yazabilirsiniz.
+            </p>
           </div>
 
           {/* YENİ: Recreate Onay Kutusu Alanı */}

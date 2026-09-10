@@ -3,11 +3,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   fetchFruitAssets,
   fetchFruitTypes,
+  fetchAssetPaths,
   addFruitAsset,
   updateFruitAsset,
   FruitAsset,
   CreateFruitAssetRequest
 } from "@/api/assets.api";
+import { getFileName } from "@/utils/formatters";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -20,6 +22,7 @@ export function FruitAssetsManager() {
   const queryClient = useQueryClient();
   const { data: fruitAssets = [] } = useQuery({ queryKey: ["fruit-assets"], queryFn: fetchFruitAssets });
   const { data: fruitTypes = [] } = useQuery({ queryKey: ["fruit-types"], queryFn: fetchFruitTypes });
+  const { data: assetPaths } = useQuery({ queryKey: ["asset-paths"], queryFn: fetchAssetPaths });
 
   const [editingAssetId, setEditingAssetId] = useState<number | null>(null);
   const [assetTitle, setAssetTitle] = useState("");
@@ -48,7 +51,7 @@ export function FruitAssetsManager() {
   const handleEdit = (asset: FruitAsset) => {
     setEditingAssetId(asset.id);
     setAssetTitle(asset.title);
-    setAssetPath(asset.imagePath);
+    setAssetPath(getFileName(asset.imagePath));
     setIsMultiple(asset.isMultipleFruits);
     setSelectedTypeIds(asset.fruits.map((f) => f.id));
   };
@@ -101,13 +104,23 @@ export function FruitAssetsManager() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Local Image Path</Label>
+              <div className="flex items-center justify-between">
+                <Label>Image File Name</Label>
+                {assetPaths?.fruitImages && (
+                  <span className="text-[10px] text-muted-foreground truncate max-w-[180px]" title={assetPaths.fruitImages}>
+                    📁 {assetPaths.fruitImages}
+                  </span>
+                )}
+              </div>
               <Input
-                placeholder="C:/assets/strawberry.png"
+                placeholder="e.g. banana.png"
                 value={assetPath}
                 onChange={(e) => setAssetPath(e.target.value)}
                 required
               />
+              <p className="text-[11px] text-muted-foreground">
+                Sadece dosya adını (örn. <code className="text-primary font-mono">banana.png</code>) yazabilirsiniz.
+              </p>
             </div>
 
             <div className="space-y-3 pt-2">
@@ -167,8 +180,8 @@ export function FruitAssetsManager() {
             {fruitAssets.map((asset) => (
               <TableRow key={asset.id}>
                 <TableCell className="font-medium">{asset.title}</TableCell>
-                <TableCell className="text-xs text-muted-foreground truncate max-w-[150px]">
-                  {asset.imagePath}
+                <TableCell className="text-xs text-muted-foreground truncate max-w-[150px]" title={asset.imagePath}>
+                  {getFileName(asset.imagePath)}
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">

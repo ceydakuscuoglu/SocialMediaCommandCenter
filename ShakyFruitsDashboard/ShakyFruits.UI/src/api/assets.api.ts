@@ -128,3 +128,13 @@ export const addHistoricalVideo = async (data: AddHistoricalVideoRequest) => {
     body: JSON.stringify(data),
   });
 };
+
+export interface AssetPathsConfig {
+  fruitImages?: string;
+  referenceVideos?: string;
+  outputs?: string;
+}
+
+export const fetchAssetPaths = async (): Promise<AssetPathsConfig> => {
+  return apiFetch<AssetPathsConfig>("/Assets/paths");
+};

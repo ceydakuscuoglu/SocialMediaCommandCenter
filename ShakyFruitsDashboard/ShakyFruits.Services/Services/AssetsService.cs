@@ -3,9 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using ShakyFruits.Core.Entities;
 using ShakyFruits.Core.Enums;
+using ShakyFruits.Core.Helpers;
 using ShakyFruits.Core.Interfaces;
+using ShakyFruits.Core.Settings;
 using ShakyFruits.Data;
 
 namespace ShakyFruits.Services
@@ -13,10 +16,12 @@ namespace ShakyFruits.Services
     public class AssetsService : IAssetsService
     {
         private readonly ApplicationDbContext _context;
+        private readonly AssetPathOptions _assetPaths;
 
-        public AssetsService(ApplicationDbContext context)
+        public AssetsService(ApplicationDbContext context, IOptions<AssetPathOptions> assetPathOptions)
         {
             _context = context;
+            _assetPaths = assetPathOptions.Value;
         }
 
         public async Task<object> AddFruitAssetAsync(string title, string imagePath, bool isMultipleFruits, List<int> fruitTypeIds)
@@ -25,10 +30,12 @@ namespace ShakyFruits.Services
                 .Where(f => fruitTypeIds.Contains(f.Id))
                 .ToListAsync();
 
+            var resolvedImagePath = AssetPathHelper.ResolvePath(_assetPaths.FruitImages, imagePath);
+
             var newAsset = new FruitAsset
             {
                 Title = title,
-                ImagePath = imagePath,
+                ImagePath = resolvedImagePath,
                 IsMultipleFruits = isMultipleFruits,
                 FruitsInImage = fruitTypes
             };
@@ -107,7 +114,7 @@ namespace ShakyFruits.Services
                 .ToListAsync();
 
             existingAsset.Title = title;
-            existingAsset.ImagePath = imagePath;
+            existingAsset.ImagePath = AssetPathHelper.ResolvePath(_assetPaths.FruitImages, imagePath);
             existingAsset.IsMultipleFruits = isMultipleFruits;
 
             existingAsset.FruitsInImage.Clear();
@@ -134,11 +141,15 @@ namespace ShakyFruits.Services
 
         public async Task<object> AddReferenceVideoAsync(string? danceStyle, ReferenceSourceType sourceType, string? videoPath, string? klingSourceUrlOrId)
         {
+            var resolvedVideoPath = sourceType == ReferenceSourceType.LocalUpload
+                ? AssetPathHelper.ResolvePath(_assetPaths.ReferenceVideos, videoPath)
+                : null;
+
             var newReference = new ReferenceVideo
             {
                 DanceStyle = danceStyle,
                 SourceType = sourceType,
-                VideoPath = sourceType == ReferenceSourceType.LocalUpload ? videoPath : null,
+                VideoPath = resolvedVideoPath,
                 KlingSourceUrlOrId = sourceType == ReferenceSourceType.KlingRecreate ? klingSourceUrlOrId : null
             };
 
@@ -177,9 +188,13 @@ namespace ShakyFruits.Services
             var existingVideo = await _context.ReferenceVideos.FindAsync(id);
             if (existingVideo == null) return null;
 
+            var resolvedVideoPath = sourceType == ReferenceSourceType.LocalUpload
+                ? AssetPathHelper.ResolvePath(_assetPaths.ReferenceVideos, videoPath)
+                : null;
+
             existingVideo.DanceStyle = danceStyle;
             existingVideo.SourceType = sourceType;
-            existingVideo.VideoPath = sourceType == ReferenceSourceType.LocalUpload ? videoPath : null;
+            existingVideo.VideoPath = resolvedVideoPath;
             existingVideo.KlingSourceUrlOrId = sourceType == ReferenceSourceType.KlingRecreate ? klingSourceUrlOrId : null;
 
             await _context.SaveChangesAsync();
@@ -264,7 +279,7 @@ namespace ShakyFruits.Services
                 generation.Title = title;
             }
 
-            generation.OutputVideoPath = outputVideoPath;
+            generation.OutputVideoPath = AssetPathHelper.ResolvePath(_assetPaths.Outputs, outputVideoPath);
             generation.AiGeneratedCaption = aiGeneratedCaption;
             generation.Status = GenerationStatus.Completed;
 

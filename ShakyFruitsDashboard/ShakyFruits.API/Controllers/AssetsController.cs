@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using ShakyFruits.Core.DTOs;
 using ShakyFruits.Core.Interfaces;
+using ShakyFruits.Core.Settings;
 using System;
 using System.Threading.Tasks;
 
@@ -12,11 +14,22 @@ namespace ShakyFruits.API.Controllers
     {
         private readonly IAssetsService _assetsService;
         private readonly IGenerationService _generationService;
+        private readonly IOptions<AssetPathOptions> _assetPathOptions;
 
-        public AssetsController(IAssetsService assetsService, IGenerationService generationService)
+        public AssetsController(
+            IAssetsService assetsService,
+            IGenerationService generationService,
+            IOptions<AssetPathOptions> assetPathOptions)
         {
             _assetsService = assetsService;
             _generationService = generationService;
+            _assetPathOptions = assetPathOptions;
+        }
+
+        [HttpGet("paths")]
+        public IActionResult GetAssetPaths()
+        {
+            return Ok(_assetPathOptions.Value);
         }
 
         [HttpPost("fruits")]

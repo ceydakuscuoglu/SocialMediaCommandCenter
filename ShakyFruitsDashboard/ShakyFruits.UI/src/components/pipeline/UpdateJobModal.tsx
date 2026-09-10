@@ -122,11 +122,15 @@ export function UpdateJobModal({ isOpen, onClose, job }: UpdateJobModalProps) {
                     </div>
 
                     <div className="space-y-2">
-                        <Label>Output Video Path</Label>
+                        <Label>Output Video File Name / Path</Label>
                         <Input
+                            placeholder="e.g. bombomgirl_tropicals.mp4"
                             value={formData.outputVideoPath}
                             onChange={(e) => setFormData({ ...formData, outputVideoPath: e.target.value })}
                         />
+                        <p className="text-[11px] text-muted-foreground">
+                            Sadece dosya adını (örn. <code className="text-primary font-mono">bombomgirl_tropicals.mp4</code>) yazabilirsiniz.
+                        </p>
                     </div>
 
                     <div className="space-y-2">

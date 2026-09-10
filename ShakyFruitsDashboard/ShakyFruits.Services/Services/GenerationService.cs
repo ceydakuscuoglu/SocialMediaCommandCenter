@@ -3,10 +3,12 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using ShakyFruits.Core.Entities;
 using ShakyFruits.Core.Enums;
 using ShakyFruits.Core.Helpers;
 using ShakyFruits.Core.Interfaces;
+using ShakyFruits.Core.Settings;
 using ShakyFruits.Data;
 
 namespace ShakyFruits.Services
@@ -15,11 +17,16 @@ namespace ShakyFruits.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly IAiCaptionService _aiCaptionService;
+        private readonly AssetPathOptions _assetPaths;
 
-        public GenerationService(ApplicationDbContext context, IAiCaptionService aiCaptionService)
+        public GenerationService(
+            ApplicationDbContext context,
+            IAiCaptionService aiCaptionService,
+            IOptions<AssetPathOptions> assetPathOptions)
         {
             _context = context;
             _aiCaptionService = aiCaptionService;
+            _assetPaths = assetPathOptions.Value;
         }
 
         public async Task<object?> GenerateAiCaptionAsync(int id, SocialPlatform platform)
@@ -76,7 +83,7 @@ namespace ShakyFruits.Services
                 TargetModel = "Bilinmiyor (Geçmiş Veri)",
                 TargetResolution = "Bilinmiyor",
                 Status = GenerationStatus.Completed,
-                OutputVideoPath = outputVideoPath,
+                OutputVideoPath = AssetPathHelper.ResolvePath(_assetPaths.Outputs, outputVideoPath),
                 AiGeneratedCaption = aiGeneratedCaption
             };
 
@@ -157,7 +164,7 @@ namespace ShakyFruits.Services
             generation.ReferenceVideoId = referenceVideoId;
             generation.IsRecreate = isRecreate;
             generation.TargetUrl = targetUrl;
-            generation.OutputVideoPath = outputVideoPath;
+            generation.OutputVideoPath = AssetPathHelper.ResolvePath(_assetPaths.Outputs, outputVideoPath);
             generation.AiGeneratedCaption = aiGeneratedCaption;
 
             if (isPublished)

@@ -2,12 +2,14 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   fetchReferenceVideos,
+  fetchAssetPaths,
   addReferenceVideo,
   updateReferenceVideo,
   ReferenceVideo,
   ReferenceSourceType,
   CreateReferenceVideoRequest,
 } from "@/api/assets.api";
+import { getFileName } from "@/utils/formatters";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -21,6 +23,7 @@ export function ReferenceVideosManager() {
     queryKey: ["reference-videos"],
     queryFn: fetchReferenceVideos,
   });
+  const { data: assetPaths } = useQuery({ queryKey: ["asset-paths"], queryFn: fetchAssetPaths });
 
   const [editingRefId, setEditingRefId] = useState<number | null>(null);
   const [danceStyle, setDanceStyle] = useState("");
@@ -50,7 +53,7 @@ export function ReferenceVideosManager() {
     setEditingRefId(vid.id);
     setDanceStyle(vid.danceStyle);
     setSourceType(vid.sourceType === "LocalUpload" ? 0 : 1);
-    setVideoPath(vid.videoPath || "");
+    setVideoPath(getFileName(vid.videoPath) || "");
     setKlingUrl(vid.klingSourceUrlOrId || "");
   };
 
@@ -108,13 +111,23 @@ export function ReferenceVideosManager() {
             </div>
             {sourceType === ReferenceSourceType.LocalUpload ? (
               <div className="space-y-2">
-                <Label>Local Video Path</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Video File Name</Label>
+                  {assetPaths?.referenceVideos && (
+                    <span className="text-[10px] text-muted-foreground truncate max-w-[180px]" title={assetPaths.referenceVideos}>
+                      📁 {assetPaths.referenceVideos}
+                    </span>
+                  )}
+                </div>
                 <Input
-                  placeholder="C:/assets/dances/salsa.mp4"
+                  placeholder="e.g. pra.mp4"
                   value={videoPath}
                   onChange={(e) => setVideoPath(e.target.value)}
                   required
                 />
+                <p className="text-[11px] text-muted-foreground">
+                  Sadece dosya adını (örn. <code className="text-primary font-mono">pra.mp4</code>) yazabilirsiniz.
+                </p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -160,8 +173,8 @@ export function ReferenceVideosManager() {
                     {vid.sourceType}
                   </span>
                 </TableCell>
-                <TableCell className="text-xs text-muted-foreground truncate max-w-[200px]">
-                  {vid.videoPath || vid.klingSourceUrlOrId}
+                <TableCell className="text-xs text-muted-foreground truncate max-w-[200px]" title={vid.videoPath || vid.klingSourceUrlOrId || ""}>
+                  {vid.sourceType === "LocalUpload" && vid.videoPath ? getFileName(vid.videoPath) : (vid.videoPath || vid.klingSourceUrlOrId)}
                 </TableCell>
                 <TableCell className="text-right">
                   <Button
