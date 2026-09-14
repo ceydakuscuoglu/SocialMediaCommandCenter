@@ -13,6 +13,36 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+// Özel Bilgi Baloncuğu (Tooltip) Tasarımı
+const CustomTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-card border border-border/50 p-3 rounded-lg shadow-md text-sm min-w-[150px]">
+        {/* ID yerine doğrudan Başlık (Combination) gösteriliyor */}
+        <p className="font-semibold text-primary mb-2 pb-1 border-b border-border/50">
+          {data.combination || "Unknown Title"}
+        </p>
+        <div className="flex flex-col gap-1">
+          <p className="text-muted-foreground flex justify-between gap-4">
+            <span>Avg Views:</span>
+            <span className="font-medium text-foreground">{data.averageViews?.toLocaleString()}</span>
+          </p>
+          <p className="text-muted-foreground flex justify-between gap-4">
+            <span>Viral Factor:</span>
+            <span className="font-medium text-foreground">{data.averageViralFactor}%</span>
+          </p>
+          <p className="text-muted-foreground flex justify-between gap-4">
+            <span>Videos:</span>
+            <span className="font-medium text-foreground">{data.videoCount}</span>
+          </p>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
 export function CastSynergyTab() {
   const { data: soloVsGroup } = useQuery({ queryKey: ["solo-group"], queryFn: fetchSoloVsGroup });
   const { data: combinations } = useQuery({ queryKey: ["combinations"], queryFn: fetchFruitCombinations });
@@ -67,23 +97,13 @@ export function CastSynergyTab() {
                 tickLine={false}
               />
               <ZAxis type="number" dataKey="videoCount" range={[100, 800]} name="Videos Published" />
+
+              {/* Özel Tooltip Bileşenini Buraya Entegre Ettik */}
               <Tooltip
-                cursor={{ strokeDasharray: "3 3" }}
-                contentStyle={{
-                  borderRadius: "8px",
-                  backgroundColor: "hsl(var(--card))",
-                  color: "hsl(var(--foreground))",
-                  border: "1px solid var(--border)",
-                }}
-                formatter={(value: any, name: any) => [
-                  name === "Viral Factor"
-                    ? `${value}%`
-                    : typeof value === "number"
-                    ? value.toLocaleString()
-                    : value,
-                  name,
-                ]}
+                cursor={{ strokeDasharray: "3 3", stroke: "hsl(var(--border))" }}
+                content={<CustomTooltip />}
               />
+
               <Scatter name="Combinations" data={combinations} fill="#8b5cf6" opacity={0.8} />
             </ScatterChart>
           </ResponsiveContainer>
