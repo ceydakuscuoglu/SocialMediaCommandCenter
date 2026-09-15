@@ -1,19 +1,29 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { forceRefreshVideoStats, PublishedVideoLatest } from "@/api/analytics.api";
-import { ExternalLink, TrendingUp, VideoOff, RefreshCw } from "lucide-react";
+import { ExternalLink, TrendingUp, VideoOff, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 interface PublishedVideosTableProps {
   videos?: PublishedVideoLatest[];
 }
 
+type SortKey = "videoId" | "title" | "views" | "likes" | "favorites" | "comments";
+type SortDirection = "asc" | "desc";
+
 export function PublishedVideosTable({ videos = [] }: PublishedVideosTableProps) {
   const queryClient = useQueryClient();
   const [refreshingId, setRefreshingId] = useState<number | null>(null);
+
+  // SIRALAMA (SORTING) STATE'İ
+  // Varsayılan olarak Gen ID (videoId) azalan (desc) şeklinde ayarlandı (En yeniler üstte)
+  const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: SortDirection }>({
+    key: "videoId",
+    direction: "desc",
+  });
 
   const refreshMutation = useMutation({
     mutationFn: forceRefreshVideoStats,
@@ -27,6 +37,74 @@ export function PublishedVideosTable({ videos = [] }: PublishedVideosTableProps)
       setRefreshingId(null);
     }
   });
+
+  // SIRALAMA FONKSİYONU
+  const sortedVideos = useMemo(() => {
+    let sortableVideos = [...videos];
+    if (sortConfig !== null) {
+      sortableVideos.sort((a, b) => {
+        let aValue: any = 0;
+        let bValue: any = 0;
+
+        switch (sortConfig.key) {
+          case "videoId":
+            aValue = a.videoId;
+            bValue = b.videoId;
+            break;
+          case "title":
+            aValue = (a.title || a.postUrl || "").toLowerCase();
+            bValue = (b.title || b.postUrl || "").toLowerCase();
+            break;
+          case "views":
+            aValue = a.latestStats?.views || 0;
+            bValue = b.latestStats?.views || 0;
+            break;
+          case "likes":
+            aValue = a.latestStats?.likes || 0;
+            bValue = b.latestStats?.likes || 0;
+            break;
+          case "favorites":
+            aValue = a.latestStats?.favorites || 0;
+            bValue = b.latestStats?.favorites || 0;
+            break;
+          case "comments":
+            aValue = a.latestStats?.comments || 0;
+            bValue = b.latestStats?.comments || 0;
+            break;
+        }
+
+        if (aValue < bValue) {
+          return sortConfig.direction === "asc" ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === "asc" ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableVideos;
+  }, [videos, sortConfig]);
+
+  // Kolon başlığına tıklandığında çalışacak fonksiyon
+  const requestSort = (key: SortKey) => {
+    let direction: SortDirection = "asc";
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === "asc") {
+      direction = "desc";
+    }
+    setSortConfig({ key, direction });
+  };
+
+  // İkonları doğru yönde gösteren yardımcı bileşen
+  const SortIcon = ({ columnKey }: { columnKey: SortKey }) => {
+    if (sortConfig?.key !== columnKey) {
+      return <ArrowUpDown className="ml-1.5 h-3.5 w-3.5 opacity-40 transition-opacity group-hover:opacity-100" />;
+    }
+    return sortConfig.direction === "asc" ? (
+      <ArrowUp className="ml-1.5 h-3.5 w-3.5 text-primary" />
+    ) : (
+      <ArrowDown className="ml-1.5 h-3.5 w-3.5 text-primary" />
+    );
+  };
 
   if (videos.length === 0) {
     return (
@@ -42,18 +120,73 @@ export function PublishedVideosTable({ videos = [] }: PublishedVideosTableProps)
       <Table>
         <TableHeader className="bg-muted/30">
           <TableRow>
-            <TableHead className="w-[80px]">Gen ID</TableHead>
-            <TableHead>Video / Link</TableHead>
-            <TableHead className="text-right">Views</TableHead>
-            <TableHead className="text-right">Likes</TableHead>
-            <TableHead className="text-right">Favorites</TableHead>
-            <TableHead className="text-right">Comments</TableHead>
+            {/* 1. Gen ID (Tıklanabilir) */}
+            <TableHead className="w-[100px]">
+              <div
+                className="flex items-center cursor-pointer select-none group hover:text-foreground transition-colors"
+                onClick={() => requestSort("videoId")}
+              >
+                Gen ID <SortIcon columnKey="videoId" />
+              </div>
+            </TableHead>
+
+            {/* 2. Video / Link (Tıklanabilir) */}
+            <TableHead>
+              <div
+                className="flex items-center cursor-pointer select-none group hover:text-foreground transition-colors"
+                onClick={() => requestSort("title")}
+              >
+                Video / Link <SortIcon columnKey="title" />
+              </div>
+            </TableHead>
+
+            {/* 3. Views (Tıklanabilir - Sağa Dayalı) */}
+            <TableHead className="text-right">
+              <div
+                className="flex items-center justify-end cursor-pointer select-none group hover:text-foreground transition-colors"
+                onClick={() => requestSort("views")}
+              >
+                Views <SortIcon columnKey="views" />
+              </div>
+            </TableHead>
+
+            {/* 4. Likes (Tıklanabilir - Sağa Dayalı) */}
+            <TableHead className="text-right">
+              <div
+                className="flex items-center justify-end cursor-pointer select-none group hover:text-foreground transition-colors"
+                onClick={() => requestSort("likes")}
+              >
+                Likes <SortIcon columnKey="likes" />
+              </div>
+            </TableHead>
+
+            {/* 5. Favorites (Tıklanabilir - Sağa Dayalı) */}
+            <TableHead className="text-right">
+              <div
+                className="flex items-center justify-end cursor-pointer select-none group hover:text-foreground transition-colors"
+                onClick={() => requestSort("favorites")}
+              >
+                Favorites <SortIcon columnKey="favorites" />
+              </div>
+            </TableHead>
+
+            {/* 6. Comments (Tıklanabilir - Sağa Dayalı) */}
+            <TableHead className="text-right">
+              <div
+                className="flex items-center justify-end cursor-pointer select-none group hover:text-foreground transition-colors"
+                onClick={() => requestSort("comments")}
+              >
+                Comments <SortIcon columnKey="comments" />
+              </div>
+            </TableHead>
+
             <TableHead className="text-right">Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {videos.map((video) => {
+          {/* Orijinal videos dizisi yerine sortedVideos dizisini map'liyoruz */}
+          {sortedVideos.map((video) => {
             const stats = video.latestStats;
             const isRefreshing = refreshingId === video.videoId;
 
@@ -104,7 +237,6 @@ export function PublishedVideosTable({ videos = [] }: PublishedVideosTableProps)
                   )}
                 </TableCell>
 
-                {/* YENİ: SATIR İÇİ İŞLEM BUTONLARI (Refresh) */}
                 <TableCell className="text-right">
                   <Button
                     variant="ghost"

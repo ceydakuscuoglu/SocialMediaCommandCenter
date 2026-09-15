@@ -813,7 +813,7 @@ namespace ShakyFruits.Services
                     peakTime = $"{peakHour}:00",
                     recommendedPostingTime = $"{recommendedHour}:00",
                     expectedAudienceAtPeak = peakHourData?.averageActiveFollowers ?? 0,
-                    recommendation = $"Takipçileriniz en yoğun saat {peakHour}:00 civarında aktif. Algoritmanın videonuzu işleyip For You akışına sürmesi için en ideal paylaşım saati: {recommendedHour}:00."
+                    recommendation = $"Your followers are most active around {peakHour}:00. To give the algorithm time to process your video and push it to the For You feed, the optimal posting time is: {recommendedHour}:00."
                 },
                 heatmap = heatmapData
             };
