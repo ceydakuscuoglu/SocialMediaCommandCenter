@@ -22,11 +22,9 @@ export function VideoPerformanceChart({
   title = "Growth Performance"
 }: VideoPerformanceChartProps) {
 
-  // 1. Verileri Grafiğin Anlayacağı ve Göstereceği Formata Çevir
   const formattedData = useMemo(() => {
     if (!historyData) return [];
 
-    // Eski tarihten yeni tarihe doğru sırala (Grafiğin soldan sağa akması için)
     const sortedData = [...historyData].sort((a, b) =>
       new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime()
     );
@@ -35,7 +33,6 @@ export function VideoPerformanceChart({
       const date = new Date(snap.recordedAt);
       return {
         ...snap,
-        // Ekranda çok yer kaplamaması için "Gün Ay, Saat:Dakika" formatı
         displayDate: date.toLocaleDateString("tr-TR", {
           month: "short",
           day: "numeric",
@@ -46,7 +43,6 @@ export function VideoPerformanceChart({
     });
   }, [historyData]);
 
-  // 2. Veri Yoksa "Boş Durum" (Empty State) Göster
   if (formattedData.length === 0) {
     return (
       <Card className="bg-card/50 backdrop-blur-sm border-border/50 h-full flex flex-col items-center justify-center text-muted-foreground min-h-[350px]">
@@ -55,7 +51,35 @@ export function VideoPerformanceChart({
     );
   }
 
-  // 3. Grafiği Çiz (Recharts & Shadcn UI)
+  // --- MATEMATİKSEL NOKTA HESAPLAMASI ---
+  const dataLength = formattedData.length;
+  const step = Math.max(1, Math.floor(dataLength / 10));
+
+  const renderCustomDot = (props: any, color: string) => {
+    const { cx, cy, index } = props;
+
+    if (index % step === 0 || index === dataLength - 1) {
+      return (
+        <circle
+          key={`dot-${index}`}
+          cx={cx}
+          cy={cy}
+          r={3.2}
+          strokeWidth={2.5}
+          stroke={color}
+          /* 
+            SVG'nin HSL okuyamama sorununu çözmek için sabit beyaz verdik. 
+            Eğer karanlık tema kullanırsan Tailwind'in 'fill-background' 
+            sınıfı bunu otomatik ezecek ve karta uyum sağlayacaktır. 
+          */
+          fill="#ffffff"
+          className="fill-background"
+        />
+      );
+    }
+    return null;
+  };
+
   return (
     <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-sm w-full h-full flex flex-col">
       <CardHeader>
@@ -66,30 +90,27 @@ export function VideoPerformanceChart({
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={formattedData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
 
-            {/* Arka Plan Izgarası: Sadece yatay çizgiler, koyu temaya uygun hafiflikte */}
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} opacity={0.5} />
 
-            {/* X Ekseni: Tarihler */}
             <XAxis
               dataKey="displayDate"
               stroke="hsl(var(--muted-foreground))"
-              fontSize={12}
+              fontSize={11}
               tickLine={false}
               axisLine={false}
               dy={10}
+              minTickGap={40}
             />
 
-            {/* Y Ekseni: Sayılar (Binlik değerleri 'k' ile kısaltıyoruz, Örn: 1.5k) */}
             <YAxis
               stroke="hsl(var(--muted-foreground))"
-              fontSize={12}
+              fontSize={11}
               tickLine={false}
               axisLine={false}
               tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value}
               dx={-10}
             />
 
-            {/* Üzerine Gelindiğinde Çıkan Detay Baloncuğu */}
             <Tooltip
               contentStyle={{
                 backgroundColor: "hsl(var(--card))",
@@ -101,39 +122,36 @@ export function VideoPerformanceChart({
               itemStyle={{ fontSize: "14px", fontWeight: "500" }}
             />
 
-            {/* Renk Göstergeleri (Legend) */}
             <Legend iconType="circle" wrapperStyle={{ paddingTop: "20px" }} />
 
-            {/* 1. Çizgi: İzlenmeler (Gösterişli Mavi/Cyan) */}
             <Line
-              type="monotone"
+              type="monotone" // Yeniden pürüzsüz kavisli formata döndük
               name="Total Views"
               dataKey="views"
-              stroke="#0ea5e9" // Tailwind sky-500
+              stroke="#0ea5e9"
               strokeWidth={3}
-              dot={{ r: 4, strokeWidth: 2, fill: "hsl(var(--background))" }}
+              // Fonksiyonu çalıştırıp sadece belirlediğimiz indexlere nokta basıyoruz
+              dot={(props) => renderCustomDot(props, "#0ea5e9")}
               activeDot={{ r: 6, strokeWidth: 0, fill: "#0ea5e9" }}
             />
 
-            {/* 2. Çizgi: Beğeniler (YENİ - Gösterişli Mor) */}
             <Line
               type="monotone"
               name="Likes"
               dataKey="likes"
-              stroke="#8b5cf6" // Tailwind violet-500
+              stroke="#8b5cf6"
               strokeWidth={3}
-              dot={{ r: 4, strokeWidth: 2, fill: "hsl(var(--background))" }}
+              dot={(props) => renderCustomDot(props, "#8b5cf6")}
               activeDot={{ r: 6, strokeWidth: 0, fill: "#8b5cf6" }}
             />
 
-            {/* 3. Çizgi: Favoriler (Gösterişli Pembe/Gül Rengi) */}
             <Line
               type="monotone"
               name="Favorites"
               dataKey="favorites"
-              stroke="#f43f5e" // Tailwind rose-500
+              stroke="#f43f5e"
               strokeWidth={3}
-              dot={{ r: 4, strokeWidth: 2, fill: "hsl(var(--background))" }}
+              dot={(props) => renderCustomDot(props, "#f43f5e")}
               activeDot={{ r: 6, strokeWidth: 0, fill: "#f43f5e" }}
             />
           </LineChart>

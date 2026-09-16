@@ -14,7 +14,7 @@ export function AppHeader() {
       </div>
 
       <p className="text-muted-foreground text-lg">
-        Kling AI Video Automation & Content Management
+        Social Media Command and Content Managment Center
       </p>
     </div>
   );

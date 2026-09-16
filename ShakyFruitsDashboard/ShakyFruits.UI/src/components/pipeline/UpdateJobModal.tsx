@@ -129,7 +129,7 @@ export function UpdateJobModal({ isOpen, onClose, job }: UpdateJobModalProps) {
                             onChange={(e) => setFormData({ ...formData, outputVideoPath: e.target.value })}
                         />
                         <p className="text-[11px] text-muted-foreground">
-                            Sadece dosya adını (örn. <code className="text-primary font-mono">bombomgirl_tropicals.mp4</code>) yazabilirsiniz.
+                             You can just write the file name (ex. <code className="text-primary font-mono">bombomgirl_tropicals.mp4</code>)
                         </p>
                     </div>
 

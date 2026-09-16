@@ -131,7 +131,7 @@ export function AddHistoricalVideoModal() {
               value={videoPath} onChange={e => setVideoPath(e.target.value)} 
             />
             <p className="text-[11px] text-muted-foreground">
-              Sadece dosya adını (örn. <code className="text-primary font-mono">bombomgirl_tropicals.mp4</code>) yazabilirsiniz.
+              You can just write the file name (ex. <code className="text-primary font-mono">bombomgirl_tropicals.mp4</code>)
             </p>
           </div>
 

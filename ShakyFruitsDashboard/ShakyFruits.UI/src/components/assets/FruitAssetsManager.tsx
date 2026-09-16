@@ -119,7 +119,7 @@ export function FruitAssetsManager() {
                 required
               />
               <p className="text-[11px] text-muted-foreground">
-                Sadece dosya adını (örn. <code className="text-primary font-mono">banana.png</code>) yazabilirsiniz.
+                 You can just write the file name (ex. <code className="text-primary font-mono">banana.png</code>)
               </p>
             </div>
 
