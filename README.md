@@ -330,20 +330,6 @@ To enable zero-touch automation without triggering two-factor authentication or 
 
 ---
 
-## 🗺️ Roadmap
-
-- [x] Multi-character prompt synergy engine
-- [x] Autonomous Kling AI bot with credit calculation
-- [x] Automated TikTok and Instagram upload service via Playwright
-- [x] TikTok Creative Center trend scraper
-- [x] Google Gemini AI copywriting integration
-- [x] Cross-platform desktop interface with Tauri v2
-- [ ] YouTube Shorts automated upload support
-- [ ] Automated A/B thumbnail generator
-- [ ] Direct TikTok Marketing API & Instagram Graph API integration
-
----
-
 ## 📄 License
 
 This project is proprietary software developed for the **ShakyFruits** brand. All rights reserved.
