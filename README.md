@@ -29,7 +29,6 @@ An end-to-end, automated Social Media Command Center and Generative AI pipeline 
 - [Configuration Reference](#-configuration-reference)
 - [Bot Authentication & Browser Profiles](#-bot-authentication--browser-profiles)
 - [API Endpoints Overview](#-api-endpoints-overview)
-- [Roadmap](#-roadmap)
 - [License](#-license)
 
 ---
