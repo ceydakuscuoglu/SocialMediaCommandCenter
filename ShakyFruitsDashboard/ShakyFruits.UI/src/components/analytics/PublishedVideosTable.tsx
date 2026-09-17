@@ -13,7 +13,7 @@ interface PublishedVideosTableProps {
   videos?: PublishedVideoLatest[];
 }
 
-type SortKey = "videoId" | "title" | "views" | "likes" | "favorites" | "comments";
+type SortKey = "videoId" | "title" | "views" | "likes" | "likeToViewRatio" | "favorites" | "comments";
 type SortDirection = "asc" | "desc";
 
 export function PublishedVideosTable({ videos = [] }: PublishedVideosTableProps) {
@@ -86,6 +86,10 @@ export function PublishedVideosTable({ videos = [] }: PublishedVideosTableProps)
             aValue = a.latestStats?.likes || 0;
             bValue = b.latestStats?.likes || 0;
             break;
+          case "likeToViewRatio":
+            aValue = a.likeToViewRatio ?? a.latestStats?.likeToViewRatio ?? (a.latestStats && a.latestStats.views > 0 ? (a.latestStats.likes / a.latestStats.views) * 100 : 0);
+            bValue = b.likeToViewRatio ?? b.latestStats?.likeToViewRatio ?? (b.latestStats && b.latestStats.views > 0 ? (b.latestStats.likes / b.latestStats.views) * 100 : 0);
+            break;
           case "favorites":
             aValue = a.latestStats?.favorites || 0;
             bValue = b.latestStats?.favorites || 0;
@@ -142,8 +146,8 @@ export function PublishedVideosTable({ videos = [] }: PublishedVideosTableProps)
         <Table>
           <TableHeader className="bg-muted/30">
             <TableRow>
-              <TableHead className="w-[100px]">
-                <div className="flex items-center cursor-pointer select-none group hover:text-foreground transition-colors" onClick={() => requestSort("videoId")}>
+              <TableHead className="w-[90px] text-center">
+                <div className="flex items-center justify-center cursor-pointer select-none group hover:text-foreground transition-colors" onClick={() => requestSort("videoId")}>
                   Gen ID <SortIcon columnKey="videoId" />
                 </div>
               </TableHead>
@@ -152,38 +156,44 @@ export function PublishedVideosTable({ videos = [] }: PublishedVideosTableProps)
                   Video / Link <SortIcon columnKey="title" />
                 </div>
               </TableHead>
-              <TableHead className="text-right">
-                <div className="flex items-center justify-end cursor-pointer select-none group hover:text-foreground transition-colors" onClick={() => requestSort("views")}>
+              <TableHead className="text-center">
+                <div className="flex items-center justify-center cursor-pointer select-none group hover:text-foreground transition-colors" onClick={() => requestSort("likeToViewRatio")}>
+                  View / Like <SortIcon columnKey="likeToViewRatio" />
+                </div>
+              </TableHead>
+              <TableHead className="text-center">
+                <div className="flex items-center justify-center cursor-pointer select-none group hover:text-foreground transition-colors" onClick={() => requestSort("views")}>
                   Views <SortIcon columnKey="views" />
                 </div>
               </TableHead>
-              <TableHead className="text-right">
-                <div className="flex items-center justify-end cursor-pointer select-none group hover:text-foreground transition-colors" onClick={() => requestSort("likes")}>
+              <TableHead className="text-center">
+                <div className="flex items-center justify-center cursor-pointer select-none group hover:text-foreground transition-colors" onClick={() => requestSort("likes")}>
                   Likes <SortIcon columnKey="likes" />
                 </div>
               </TableHead>
-              <TableHead className="text-right">
-                <div className="flex items-center justify-end cursor-pointer select-none group hover:text-foreground transition-colors" onClick={() => requestSort("favorites")}>
+              <TableHead className="text-center">
+                <div className="flex items-center justify-center cursor-pointer select-none group hover:text-foreground transition-colors" onClick={() => requestSort("favorites")}>
                   Favorites <SortIcon columnKey="favorites" />
                 </div>
               </TableHead>
-              <TableHead className="text-right">
-                <div className="flex items-center justify-end cursor-pointer select-none group hover:text-foreground transition-colors" onClick={() => requestSort("comments")}>
+              <TableHead className="text-center">
+                <div className="flex items-center justify-center cursor-pointer select-none group hover:text-foreground transition-colors" onClick={() => requestSort("comments")}>
                   Comments <SortIcon columnKey="comments" />
                 </div>
               </TableHead>
-              <TableHead className="text-right">Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="text-center">Status</TableHead>
+              <TableHead className="text-right pr-4">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {sortedVideos.map((video) => {
               const stats = video.latestStats;
+              const ratio = video.likeToViewRatio ?? stats?.likeToViewRatio ?? (stats && stats.views > 0 ? (stats.likes / stats.views) * 100 : 0);
               const isRefreshing = refreshingId === video.videoId;
 
               return (
                 <TableRow key={video.videoId} className="hover:bg-muted/20 transition-colors">
-                  <TableCell className="font-medium text-foreground">
+                  <TableCell className="font-medium text-foreground text-center">
                     #{video.videoId}
                   </TableCell>
                   <TableCell>
@@ -205,22 +215,34 @@ export function PublishedVideosTable({ videos = [] }: PublishedVideosTableProps)
                     </div>
                   </TableCell>
 
-                  <TableCell className="text-right font-semibold text-sky-500">
+                  <TableCell className="text-center font-semibold text-primary">
+                    {stats ? (
+                      <span
+                        className="inline-block"
+                        title={stats.views > 0 ? `${stats.likes.toLocaleString()} likes / ${stats.views.toLocaleString()} views` : "0 views"}
+                      >
+                        {ratio.toFixed(2)}%
+                      </span>
+                    ) : (
+                      "-"
+                    )}
+                  </TableCell>
+                  <TableCell className="text-center font-semibold text-sky-500">
                     {stats ? stats.views.toLocaleString() : "-"}
                   </TableCell>
-                  <TableCell className="text-right font-semibold text-rose-500">
+                  <TableCell className="text-center font-semibold text-rose-500">
                     {stats ? stats.likes.toLocaleString() : "-"}
                   </TableCell>
-                  <TableCell className="text-right font-semibold text-amber-500">
+                  <TableCell className="text-center font-semibold text-amber-500">
                     {stats ? stats.favorites.toLocaleString() : "-"}
                   </TableCell>
-                  <TableCell className="text-right font-medium text-emerald-500">
+                  <TableCell className="text-center font-medium text-emerald-500">
                     {stats ? stats.comments.toLocaleString() : "-"}
                   </TableCell>
 
-                  <TableCell className="text-right">
+                  <TableCell className="text-center">
                     {stats ? (
-                      <div className="flex items-center justify-end gap-1.5 text-xs text-emerald-500 font-medium">
+                      <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-500 font-medium">
                         <TrendingUp className="w-3.5 h-3.5" /> Tracked
                       </div>
                     ) : (
@@ -228,7 +250,7 @@ export function PublishedVideosTable({ videos = [] }: PublishedVideosTableProps)
                     )}
                   </TableCell>
 
-                  <TableCell className="text-right">
+                  <TableCell className="text-right pr-4">
                     <div className="flex items-center justify-end gap-1">
                       <Button
                         variant="ghost"

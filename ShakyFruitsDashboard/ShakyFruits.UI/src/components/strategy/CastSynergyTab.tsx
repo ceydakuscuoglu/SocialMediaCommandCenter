@@ -106,7 +106,7 @@ export function CastSynergyTab() {
               />
 
               <Scatter name="Combinations" data={combinations} opacity={0.85}>
-                {combinations?.map((entry, index) => {
+                {combinations?.map((_entry, index) => {
                   // Temandaki chart-1'den chart-5'e kadar olan renkleri sırayla atıyoruz
                   const chartColor = `var(--chart-${(index % 5) + 1})`;
                   return (

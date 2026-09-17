@@ -404,6 +404,13 @@ namespace ShakyFruits.Services
             return videos.Select(v =>
             {
                 var latestRecord = v.AnalyticsHistory.OrderByDescending(a => a.RecordedAt).FirstOrDefault();
+
+                double ratio = 0;
+                if (latestRecord != null && latestRecord.Views > 0)
+                {
+                    ratio = Math.Round(((double)latestRecord.Likes / latestRecord.Views) * 100, 2);
+                }
+
                 return new
                 {
                     id = v.Id,
@@ -415,6 +422,7 @@ namespace ShakyFruits.Services
                     fruitTitle = v.VideoGeneration?.FruitAsset?.Title ?? "Bilinmiyor",
                     title = !string.IsNullOrWhiteSpace(v.VideoGeneration?.Title) ? v.VideoGeneration.Title : (v.VideoGeneration?.FruitAsset?.Title ?? "Bilinmiyor"),
                     danceStyle = v.VideoGeneration?.ReferenceVideo?.DanceStyle ?? "Bilinmiyor",
+
                     latestStats = latestRecord != null ? new
                     {
                         views = latestRecord.Views,
@@ -422,13 +430,17 @@ namespace ShakyFruits.Services
                         comments = latestRecord.Comments,
                         shares = latestRecord.Shares,
                         favorites = latestRecord.Favorites,
-                        recordedAt = latestRecord.RecordedAt
+                        recordedAt = latestRecord.RecordedAt,
+                        likeToViewRatio = ratio
                     } : null,
+
                     views = latestRecord?.Views ?? 0,
                     likes = latestRecord?.Likes ?? 0,
                     comments = latestRecord?.Comments ?? 0,
                     shares = latestRecord?.Shares ?? 0,
                     favorites = latestRecord?.Favorites ?? 0,
+                    likeToViewRatio = ratio,
+
                     lastScrapedAt = latestRecord?.RecordedAt
                 };
             }).ToList();

@@ -16,6 +16,7 @@ export interface VideoAnalyticsSnapshot {
   shares: number;
   favorites: number;
   recordedAt: string;
+  likeToViewRatio?: number;
 }
 
 export interface PublishedVideo {
@@ -88,6 +89,7 @@ export interface PublishedVideoLatest {
   comments?: number;
   shares?: number;
   favorites?: number;
+  likeToViewRatio?: number;
   lastScrapedAt?: string;
 }
 
