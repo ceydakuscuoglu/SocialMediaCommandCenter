@@ -29,16 +29,16 @@ export function NewJobDialog() {
   const queryClient = useQueryClient();
 
   // --- API'den Sistemdeki Kaynakları Çekme ---
-  const { data: fruitAssets = [], isLoading: isLoadingAssets } = useQuery({ 
-    queryKey: ["fruit-assets"], 
+  const { data: fruitAssets = [], isLoading: isLoadingAssets } = useQuery({
+    queryKey: ["fruit-assets"],
     queryFn: fetchFruitAssets,
     enabled: open // Sadece modal açıldığında çek
   });
-  
-  const { data: referenceVideos = [], isLoading: isLoadingVideos } = useQuery({ 
-    queryKey: ["reference-videos"], 
+
+  const { data: referenceVideos = [], isLoading: isLoadingVideos } = useQuery({
+    queryKey: ["reference-videos"],
     queryFn: fetchReferenceVideos,
-    enabled: open 
+    enabled: open
   });
 
   const [step, setStep] = useState<1 | 2>(1);
@@ -47,7 +47,7 @@ export function NewJobDialog() {
   const [isRecreate, setIsRecreate] = useState("false");
   const [isMultipleFruits, setIsMultipleFruits] = useState("false");
   const [targetUrl, setTargetUrl] = useState("");
-  
+
   // --- YENİ: Kaynak Seçim Modları ve Seçilen ID'ler ---
   const [imageMode, setImageMode] = useState<"existing" | "upload">("existing");
   const [selectedAssetId, setSelectedAssetId] = useState<string>("");
@@ -99,10 +99,10 @@ export function NewJobDialog() {
     setImageMode("existing");
     setVideoMode("existing");
     setVideoTitle("");
-    setFruitTitle(""); 
-    setDanceStyle(""); 
-    setTargetModel("VIDEO 2.6"); 
-    setTargetResolution("720p"); 
+    setFruitTitle("");
+    setDanceStyle("");
+    setTargetModel("VIDEO 2.6");
+    setTargetResolution("720p");
     setOpen(false);
   };
 
@@ -159,7 +159,7 @@ export function NewJobDialog() {
       setOpen(isOpen);
     }}>
       <DialogTrigger asChild>
-        <Button className="gap-2 shadow-md">
+        <Button className="gap-2 shadow-md bg-gradient-to-r from-primary to-chart-1 text-primary-foreground hover:opacity-90 border-0 transition-opacity">
           <Play className="w-4 h-4 fill-current" />
           New Generation Job
         </Button>
@@ -179,7 +179,7 @@ export function NewJobDialog() {
             </DialogHeader>
 
             <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto px-1">
-              
+
               {/* Video Title */}
               <div className="grid gap-2">
                 <Label>Video Title</Label>
@@ -244,10 +244,10 @@ export function NewJobDialog() {
                 <Label className="mb-1">Source Fruit Image</Label>
                 <Tabs value={imageMode} onValueChange={(val) => setImageMode(val as "existing" | "upload")} className="w-full">
                   <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="existing" className="gap-2"><ImageIcon className="w-4 h-4"/> Library</TabsTrigger>
-                    <TabsTrigger value="upload" className="gap-2"><UploadCloud className="w-4 h-4"/> Upload New</TabsTrigger>
+                    <TabsTrigger value="existing" className="gap-2"><ImageIcon className="w-4 h-4" /> Library</TabsTrigger>
+                    <TabsTrigger value="upload" className="gap-2"><UploadCloud className="w-4 h-4" /> Upload New</TabsTrigger>
                   </TabsList>
-                  
+
                   <TabsContent value="existing" className="pt-2">
                     <Select value={selectedAssetId} onValueChange={setSelectedAssetId} disabled={isLoadingAssets}>
                       <SelectTrigger>
@@ -262,7 +262,7 @@ export function NewJobDialog() {
                       </SelectContent>
                     </Select>
                   </TabsContent>
-                  
+
                   <TabsContent value="upload" className="pt-2">
                     <Input type="file" accept="image/*" onChange={(e) => setFruitImage(e.target.files?.[0] || null)} />
                   </TabsContent>
@@ -275,10 +275,10 @@ export function NewJobDialog() {
                   <Label className="mb-1">Reference Dance Video</Label>
                   <Tabs value={videoMode} onValueChange={(val) => setVideoMode(val as "existing" | "upload")} className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="existing" className="gap-2"><Film className="w-4 h-4"/> Library</TabsTrigger>
-                      <TabsTrigger value="upload" className="gap-2"><UploadCloud className="w-4 h-4"/> Upload New</TabsTrigger>
+                      <TabsTrigger value="existing" className="gap-2"><Film className="w-4 h-4" /> Library</TabsTrigger>
+                      <TabsTrigger value="upload" className="gap-2"><UploadCloud className="w-4 h-4" /> Upload New</TabsTrigger>
                     </TabsList>
-                    
+
                     <TabsContent value="existing" className="pt-2">
                       <Select value={selectedVideoId} onValueChange={setSelectedVideoId} disabled={isLoadingVideos}>
                         <SelectTrigger>
@@ -293,7 +293,7 @@ export function NewJobDialog() {
                         </SelectContent>
                       </Select>
                     </TabsContent>
-                    
+
                     <TabsContent value="upload" className="pt-2">
                       <Input type="file" accept="video/*" onChange={(e) => setReferenceVideo(e.target.files?.[0] || null)} />
                     </TabsContent>

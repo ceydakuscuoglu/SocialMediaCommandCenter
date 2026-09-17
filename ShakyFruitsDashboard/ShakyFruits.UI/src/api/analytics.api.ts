@@ -94,7 +94,9 @@ export interface PublishedVideoLatest {
 export interface LeaderboardItem {
   name: string;
   videoCount: number;
+  totalViews: number;
   averageViews: number;
+  totalLikes?: number;
   averageLikes: number;
 }
 

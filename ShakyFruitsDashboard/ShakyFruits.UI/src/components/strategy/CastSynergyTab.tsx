@@ -11,6 +11,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Cell
 } from "recharts";
 
 // Özel Bilgi Baloncuğu (Tooltip) Tasarımı
@@ -104,7 +105,19 @@ export function CastSynergyTab() {
                 content={<CustomTooltip />}
               />
 
-              <Scatter name="Combinations" data={combinations} fill="#8b5cf6" opacity={0.8} />
+              <Scatter name="Combinations" data={combinations} opacity={0.85}>
+                {combinations?.map((entry, index) => {
+                  // Temandaki chart-1'den chart-5'e kadar olan renkleri sırayla atıyoruz
+                  const chartColor = `var(--chart-${(index % 5) + 1})`;
+                  return (
+                    <Cell
+                      key={`scatter-cell-${index}`}
+                      fill={chartColor}
+                      className="hover:opacity-100 transition-opacity duration-200"
+                    />
+                  );
+                })}
+              </Scatter>
             </ScatterChart>
           </ResponsiveContainer>
         </div>

@@ -583,11 +583,12 @@ namespace ShakyFruits.Services
                 {
                     name = g.Key,
                     videoCount = g.Count(),
+                    totalViews = Math.Round(g.Sum(x => x.LatestViews), 0),
                     averageViews = Math.Round(g.Average(x => x.LatestViews), 0),
+                    totalLikes = Math.Round(g.Sum(x => x.LatestLikes), 0),
                     averageLikes = Math.Round(g.Average(x => x.LatestLikes), 0)
                 })
-                .OrderByDescending(x => x.averageViews)
-                .Take(10)
+                .OrderByDescending(x => x.totalViews)
                 .ToList();
 
             var danceLeaderboard = videosWithStats
@@ -597,11 +598,12 @@ namespace ShakyFruits.Services
                 {
                     name = g.Key,
                     videoCount = g.Count(),
+                    totalViews = Math.Round(g.Sum(v => v.LatestViews), 0),
                     averageViews = Math.Round(g.Average(v => v.LatestViews), 0),
+                    totalLikes = Math.Round(g.Sum(v => v.LatestLikes), 0),
                     averageLikes = Math.Round(g.Average(v => v.LatestLikes), 0)
                 })
-                .OrderByDescending(x => x.averageViews)
-                .Take(10)
+                .OrderByDescending(x => x.totalViews)
                 .ToList();
 
             return new

@@ -13,7 +13,8 @@ export function AlgoTriggersTab() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Late Bloomers */}
         <div className="space-y-4 border border-border/50 rounded-xl p-4 bg-muted/10">
-          <h3 className="font-semibold text-emerald-500 flex items-center gap-2">
+          {/* Yeşilden Kehribar (Amber) rengine geçtik */}
+          <h3 className="font-semibold text-amber-500 flex items-center gap-2">
             <Clock className="w-4 h-4" /> Late Bloomers (Algorithm Revival)
           </h3>
           <p className="text-xs text-muted-foreground mb-4">
@@ -30,7 +31,8 @@ export function AlgoTriggersTab() {
               {lifecycle?.lateBloomers.slice(0, 5).map((lb, i) => (
                 <TableRow key={i}>
                   <TableCell className="font-medium text-xs">{lb.title}</TableCell>
-                  <TableCell className="text-right text-emerald-500 font-bold">
+                  {/* Tablodaki değerleri de Kehribar (Amber) yaptık */}
+                  <TableCell className="text-right text-amber-500 font-bold">
                     {lb.momentumMultiplier}x Boost
                   </TableCell>
                 </TableRow>
@@ -41,7 +43,8 @@ export function AlgoTriggersTab() {
 
         {/* Highest Viral Factor (K-Factor) */}
         <div className="space-y-4 border border-border/50 rounded-xl p-4 bg-muted/10">
-          <h3 className="font-semibold text-indigo-500 flex items-center gap-2">
+          {/* text-primary yerine doğrudan temadaki barların rengi olan text-chart-2'yi kullandık */}
+          <h3 className="font-semibold text-chart-2 flex items-center gap-2">
             <Trophy className="w-4 h-4" /> Highest Viral Factor (K-Factor)
           </h3>
           <p className="text-xs text-muted-foreground">
@@ -67,7 +70,7 @@ export function AlgoTriggersTab() {
                   tickFormatter={(val) => `${val}%`}
                 />
                 <Tooltip
-                  cursor={{ strokeDasharray: "3 3" }}
+                  cursor={{ strokeDasharray: "3 3", fill: "var(--border)", opacity: 0.2 }}
                   contentStyle={{
                     borderRadius: "8px",
                     backgroundColor: "hsl(var(--card))",
@@ -78,19 +81,22 @@ export function AlgoTriggersTab() {
                     name === "Viral Factor"
                       ? `${value}%`
                       : typeof value === "number"
-                      ? value.toLocaleString()
-                      : value,
+                        ? value.toLocaleString()
+                        : value,
                     name,
                   ]}
                 />
-                <Bar dataKey="viralFactor" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={32}>
-                  {engagement?.topEngagingVideos.slice(0, 5).map((_, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={index === 0 ? "#6366f1" : "var(--primary)"}
-                      opacity={index === 0 ? 1 : 0.4}
-                    />
-                  ))}
+                <Bar dataKey="viralFactor" radius={[4, 4, 0, 0]} barSize={32}>
+                  {engagement?.topEngagingVideos.slice(0, 5).map((_, index) => {
+                    const chartColor = `var(--chart-${(index % 5) + 1})`;
+                    return (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={chartColor}
+                        className="hover:opacity-80 transition-opacity duration-200"
+                      />
+                    );
+                  })}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
