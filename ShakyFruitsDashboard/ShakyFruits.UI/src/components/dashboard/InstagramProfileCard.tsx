@@ -51,19 +51,19 @@ export function InstagramProfileCard() {
           <div className="flex flex-col items-center gap-1">
             <Heart className="w-4 h-4 text-rose-500 fill-current" />
             <span className="font-bold text-sm text-foreground">{formatK(contentInteractions)}</span>
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Etkileşim</span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Interactions</span>
           </div>
           
           <div className="flex flex-col items-center gap-1 border-x border-border/50">
             <Users className="w-4 h-4 text-sky-500 fill-current" />
             <span className="font-bold text-sm text-foreground">{formatK(totalFollowers)}</span>
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Takipçi</span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Followers</span>
           </div>
           
           <div className="flex flex-col items-center gap-1">
             <Activity className="w-4 h-4 text-orange-500" />
             <span className="font-bold text-sm text-foreground">{formatK(totalReach)}</span>
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Erişim</span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Reach</span>
           </div>
         </div>
       </CardContent>

@@ -49,19 +49,19 @@ export function TikTokProfileCard() {
           <div className="flex flex-col items-center gap-1">
             <Heart className="w-4 h-4 text-rose-500 fill-current" />
             <span className="font-bold text-sm text-foreground">{formatK(lifetimeLikes)}</span>
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Beğeni</span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Likes</span>
           </div>
           
           <div className="flex flex-col items-center gap-1 border-x border-border/50">
             <Users className="w-4 h-4 text-cyan-500 fill-current" />
             <span className="font-bold text-sm text-foreground">{formatK(totalFollowers)}</span>
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Takipçi</span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Followers</span>
           </div>
           
           <div className="flex flex-col items-center gap-1">
             <UserPlus className="w-4 h-4 text-muted-foreground" />
             <span className="font-bold text-sm text-foreground">{followingCount}</span>
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Takip</span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Followed</span>
           </div>
         </div>
       </CardContent>

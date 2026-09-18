@@ -31,7 +31,7 @@ const { data: history, isLoading } = useQuery({
     
     if (diff === 0) return (
       <div className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground mt-2 bg-muted/50 px-2 py-0.5 rounded w-fit">
-        <Minus className="w-3 h-3" /> Değişim yok
+        <Minus className="w-3 h-3" />
       </div>
     );
 
@@ -62,7 +62,7 @@ const { data: history, isLoading } = useQuery({
           {/* Instagram'da İzlenme yerine Erişim (Reach) kullanılır */}
           <div className="flex flex-col justify-center p-4 rounded-xl border border-border/50 bg-muted/20">
             <div className="flex justify-between items-start mb-1">
-              <span className="text-xs font-medium text-muted-foreground">Erişim (Reach)</span>
+              <span className="text-xs font-medium text-muted-foreground">Reach</span>
               <Activity className="w-4 h-4 text-orange-500" />
             </div>
             <span className="text-xl font-bold">{formatK(latest.totalVideoViews)}</span>
@@ -71,7 +71,7 @@ const { data: history, isLoading } = useQuery({
 
           <div className="flex flex-col justify-center p-4 rounded-xl border border-border/50 bg-muted/20">
             <div className="flex justify-between items-start mb-1">
-              <span className="text-xs font-medium text-muted-foreground">Profil Ziyareti</span>
+              <span className="text-xs font-medium text-muted-foreground">Profile Visitors</span>
               <Eye className="w-4 h-4 text-purple-500" />
             </div>
             <span className="text-xl font-bold">{formatK(latest.profileViews)}</span>
@@ -81,7 +81,7 @@ const { data: history, isLoading } = useQuery({
           {/* Instagram'da Beğeniler yerine Etkileşim (Interactions) kapsamlıdır */}
           <div className="flex flex-col justify-center p-4 rounded-xl border border-border/50 bg-muted/20">
             <div className="flex justify-between items-start mb-1">
-              <span className="text-xs font-medium text-muted-foreground">Etkileşim (Interactions)</span>
+              <span className="text-xs font-medium text-muted-foreground">Interactions</span>
               <Heart className="w-4 h-4 text-pink-500" />
             </div>
             <span className="text-xl font-bold">{formatK(latest.totalLikes)}</span>
@@ -90,7 +90,7 @@ const { data: history, isLoading } = useQuery({
 
           <div className="flex flex-col justify-center p-4 rounded-xl border border-border/50 bg-muted/20">
             <div className="flex justify-between items-start mb-1">
-              <span className="text-xs font-medium text-muted-foreground">Yorumlar</span>
+              <span className="text-xs font-medium text-muted-foreground">Comments</span>
               <MessageCircle className="w-4 h-4 text-emerald-500" />
             </div>
             <span className="text-xl font-bold">{formatK(latest.totalComments)}</span>
@@ -99,7 +99,7 @@ const { data: history, isLoading } = useQuery({
 
           <div className="flex flex-col justify-center p-4 rounded-xl border border-border/50 bg-muted/20">
             <div className="flex justify-between items-start mb-1">
-              <span className="text-xs font-medium text-muted-foreground">Paylaşımlar</span>
+              <span className="text-xs font-medium text-muted-foreground">Shares</span>
               <Share2 className="w-4 h-4 text-amber-500" />
             </div>
             <span className="text-xl font-bold">{formatK(latest.totalShares)}</span>
@@ -108,7 +108,7 @@ const { data: history, isLoading } = useQuery({
 
           <div className="flex flex-col justify-center p-4 rounded-xl border border-border/50 bg-muted/20">
             <div className="flex justify-between items-start mb-1">
-              <span className="text-xs font-medium text-muted-foreground">Tahmini Ödül</span>
+              <span className="text-xs font-medium text-muted-foreground">Earn</span>
               <CircleDollarSign className="w-4 h-4 text-green-500" />
             </div>
             <span className="text-xl font-bold">${latest.estimatedRewards.toFixed(2)}</span>
