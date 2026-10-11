@@ -1,8 +1,10 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.Playwright;
 using ShakyFruits.Core.Entities;
 using ShakyFruits.Core.Enums;
 using ShakyFruits.Core.DTOs;
+using ShakyFruits.Core.Settings;
 using System.Text.Json;
 
 namespace ShakyFruits.Services
@@ -10,11 +12,14 @@ namespace ShakyFruits.Services
     public class SocialMediaScraperService
     {
         private readonly ILogger<SocialMediaScraperService> _logger;
+        private readonly BrowserSettings _browserSettings;
 
-        // Constructor ile Logger'ı içeri alıyoruz
-        public SocialMediaScraperService(ILogger<SocialMediaScraperService> logger)
+        public SocialMediaScraperService(
+            ILogger<SocialMediaScraperService> logger,
+            IOptions<BrowserSettings> browserOptions)
         {
             _logger = logger;
+            _browserSettings = browserOptions.Value;
         }
         public async Task SetupTikTokLoginAsync()
         {
@@ -99,7 +104,7 @@ namespace ShakyFruits.Services
             // YENİ GÜVENLİK ZIRHI: Gerçek Chrome ve Anti-Bot ayarları
             await using var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
             {
-                Headless = true, // DİKKAT: İlk seferlik false yapıyoruz ki ekranı görüp puzzle'ı çözelim
+                Headless = _browserSettings.Headless,
                 Channel = "chrome", // Gerçek Google Chrome'u kullanır (Bot algılamasını %90 azaltır)
                 Args = new[] { "--disable-blink-features=AutomationControlled" } // Bot etiketini siler
             });
@@ -153,7 +158,7 @@ namespace ShakyFruits.Services
             using var playwright = await Playwright.CreateAsync();
             await using var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
             {
-                Headless = true,
+                Headless = _browserSettings.Headless,
                 Channel = "chrome",
                 Args = new[] { "--disable-blink-features=AutomationControlled" }
             });
@@ -220,7 +225,7 @@ namespace ShakyFruits.Services
             using var playwright = await Playwright.CreateAsync();
             await using var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
             {
-                Headless = true, // Hataları izlemek için false, her şey çalışınca true yaparsın
+                Headless = _browserSettings.Headless, // Hata izlemek için false, her şey çalışınca true
                 Channel = "chrome",
                 Args = new[] { "--disable-blink-features=AutomationControlled" }
             });
@@ -343,7 +348,7 @@ namespace ShakyFruits.Services
             using var playwright = await Playwright.CreateAsync();
             await using var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
             {
-                Headless = true, // Arka planda gizlice çalışır
+                Headless = _browserSettings.Headless, // Arka planda gizlice çalışır
                 Channel = "chrome",
                 Args = new[] { "--disable-blink-features=AutomationControlled" }
             });
@@ -432,7 +437,7 @@ namespace ShakyFruits.Services
             using var playwright = await Playwright.CreateAsync();
             await using var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
             {
-                Headless = true, // Artık giriş yaptığın için burayı true (gizli) yapabilirsin!
+                Headless = _browserSettings.Headless,
                 Channel = "chrome",
                 ViewportSize = new ViewportSize { Width = 1920, Height = 1080 },
                 UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -520,6 +525,41 @@ namespace ShakyFruits.Services
                 if (page != null) await page.CloseAsync();
                 if (browserContext != null) await browserContext.CloseAsync();
             }
+        }
+
+        // ======================================================================
+        // SETUP: ads.tiktok.com (TikTok Ads / Creative Center) için login
+        // ======================================================================
+        public async Task SetupTikTokAdsLoginAsync()
+        {
+            // ads.tiktok.com ayrı bir oturum gerektiriyor.
+            // GetTikTokDailyTrendsAsync ile aynı BrowserData klasörünü kullanıyoruz.
+            string userDataDir = Path.Combine(Directory.GetCurrentDirectory(), "BrowserData");
+
+            _logger.LogInformation("TikTok Ads login tarayıcısı açılıyor (Headless=false zorlanıyor)... BrowserData: {Dir}", userDataDir);
+
+            using var playwright = await Playwright.CreateAsync();
+            await using var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
+            {
+                Headless = false, // Login için her zaman görünür olmalıdır
+                Channel = "chrome",
+                ViewportSize = new ViewportSize { Width = 1920, Height = 1080 },
+                UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                Args = new[] { "--disable-blink-features=AutomationControlled" }
+            });
+
+            var page = await browserContext.NewPageAsync();
+
+            _logger.LogInformation("TikTok Ads Creative Center sayfasına yönlendiriliyor...");
+            await page.GotoAsync("https://ads.tiktok.com/creative/creativeCenter/trends/hashtag",
+                new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+
+            int waitMs = _browserSettings.LoginWaitSeconds * 1000;
+            _logger.LogInformation("TikTok Ads login için {Seconds} saniye bekleniyor. TikTok hesabınızla giriş yapın.", _browserSettings.LoginWaitSeconds);
+            await Task.Delay(waitMs);
+
+            await page.CloseAsync();
+            _logger.LogInformation("TikTok Ads login tamamlandı. Çerezler BrowserData klasörüne kaydedildi.");
         }
 
         // --- GÜNCELLENEN AKILLI ÇEVİRİCİ ---

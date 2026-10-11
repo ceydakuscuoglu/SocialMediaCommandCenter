@@ -35,6 +35,12 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.Configure<ShakyFruits.Core.Settings.AssetPathOptions>(
     builder.Configuration.GetSection("AssetPaths"));
 
+// 3. Tarayıcı Ayarları (Options Pattern)
+// appsettings.json → BrowserSettings bölümünden okunur
+// Headless=false yaparak yeni bilgisayarda Swagger üzerinden login yapılabilir
+builder.Services.Configure<ShakyFruits.Core.Settings.BrowserSettings>(
+    builder.Configuration.GetSection("BrowserSettings"));
+
 builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 builder.Services.AddScoped<IPublishService, PublishService>();

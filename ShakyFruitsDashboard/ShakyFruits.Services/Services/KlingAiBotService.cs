@@ -1,10 +1,19 @@
+using Microsoft.Extensions.Options;
 using Microsoft.Playwright;
 using ShakyFruits.Core.DTOs;
+using ShakyFruits.Core.Settings;
 
 namespace ShakyFruits.Services
 {
     public class KlingAiBotService
     {
+        private readonly BrowserSettings _browserSettings;
+
+        public KlingAiBotService(IOptions<BrowserSettings> browserOptions)
+        {
+            _browserSettings = browserOptions.Value;
+        }
+
         // === GLOBAL STATE (DURUM) DEĞİŞKENLERİ ===
         private IPlaywright? _playwright;
         private IBrowserContext? _context;
@@ -41,22 +50,11 @@ namespace ShakyFruits.Services
 
                 _context = await _playwright.Chromium.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
                 {
-                    // 1. GÖRÜNMEZLİK: Tarayıcı arayüzü çizilmez, RAM ve CPU kullanımı %70 oranında düşer.
-                    Headless = true,
+                    // appsettings.json → BrowserSettings → Headless
+                    Headless = _browserSettings.Headless,
 
-                    // 2. HIZ: İnsan gözü izlesin diye koyduğumuz "SlowMo = 500" gecikmesini sildik. 
-                    // Bot artık elementleri bulduğu milisaniyede tıklayacak.
-
-                    // 3. EKRAN BOYUTU KORUMASI: Headless tarayıcılar bazen varsayılan olarak 800x600 çözünürlükte açılır.
-                    // Bu durum sitenin mobil görünüme geçmesine ve bizim aradığımız elementlerin (butonların) kaybolmasına sebep olabilir.
-                    // Sabit bir Full HD çözünürlük vererek UI'ın her zaman doğru yüklenmesini garantiye alıyoruz.
                     ViewportSize = new ViewportSize { Width = 1920, Height = 1080 },
-
-                    // 4. ANTI-BOT (Hayalet Modu): Headless tarayıcılar siteye bağlanırken "Ben Headless Chrome'um" diye bağırır.
-                    // Kling AI'ın güvenlik duvarına (Cloudflare vb.) takılmamak için normal bir Windows kullanıcısı gibi davranıyoruz.
                     UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-
-                    // 5. GEREKSİZ YÜKLERİ ENGELLEME: Sunucu performansını artırmak için bildirimleri ve kamera izni gibi pop-up'ları baştan engelliyoruz.
                     Permissions = new[] { "notifications" }
                 });
             }
@@ -164,7 +162,7 @@ namespace ShakyFruits.Services
 
             await using var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
             {
-                Headless = false // Test ederken görebilmen için false. Canlıda true yapabilirsin.
+                Headless = _browserSettings.Headless
             });
 
             var page = await browserContext.NewPageAsync();
@@ -246,6 +244,60 @@ namespace ShakyFruits.Services
                 return result;
             }
             return 0;
+        }
+
+        /// <summary>
+        /// Kling AI için oturum açar. Çerezler KlingSession klasörüne kaydedilir.
+        /// Video üretim botu bu klasördeki oturumu kullanır.
+        /// </summary>
+        public async Task SetupKlingLoginAsync(int loginWaitSeconds)
+        {
+            string userDataDir = Path.Combine(AppContext.BaseDirectory, "KlingSession");
+            Console.WriteLine($"[Kling Login] KlingSession klasörü: {userDataDir}");
+
+            using var playwright = await Playwright.CreateAsync();
+            await using var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
+            {
+                Headless = false, // Login için her zaman görünür
+                ViewportSize = new ViewportSize { Width = 1920, Height = 1080 },
+                UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            });
+
+            var page = await browserContext.NewPageAsync();
+            await page.GotoAsync("https://kling.ai/login", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+
+            Console.WriteLine($"[Kling Login] {loginWaitSeconds} saniye bekleniyor. Kling AI'a giriş yapın.");
+            await Task.Delay(loginWaitSeconds * 1000);
+
+            await page.CloseAsync();
+            Console.WriteLine("[Kling Login] Tamamlandı. Çerezler KlingSession klasörüne kaydedildi.");
+        }
+
+        /// <summary>
+        /// TikTok Studio için oturum açar. Çerezler BrowserData klasörüne kaydedilir.
+        /// Analytics scraper bu klasördeki oturumu kullanır.
+        /// </summary>
+        public async Task SetupTikTokStudioLoginAsync(int loginWaitSeconds)
+        {
+            string userDataDir = Path.Combine(Directory.GetCurrentDirectory(), "BrowserData");
+            Console.WriteLine($"[TikTok Studio Login] BrowserData klasörü: {userDataDir}");
+
+            using var playwright = await Playwright.CreateAsync();
+            await using var browserContext = await playwright.Chromium.LaunchPersistentContextAsync(userDataDir, new BrowserTypeLaunchPersistentContextOptions
+            {
+                Headless = false, // Login için her zaman görünür
+                Channel = "chrome",
+                Args = new[] { "--disable-blink-features=AutomationControlled" }
+            });
+
+            var page = await browserContext.NewPageAsync();
+            await page.GotoAsync("https://www.tiktok.com/tiktokstudio", new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+
+            Console.WriteLine($"[TikTok Studio Login] {loginWaitSeconds} saniye bekleniyor. TikTok Studio'ya giriş yapın.");
+            await Task.Delay(loginWaitSeconds * 1000);
+
+            await page.CloseAsync();
+            Console.WriteLine("[TikTok Studio Login] Tamamlandı. Çerezler BrowserData klasörüne kaydedildi.");
         }
     }
 }
